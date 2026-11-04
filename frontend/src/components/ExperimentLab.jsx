@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 
 const LAB_TOOLS = [
   { id: 'beaker', name: 'Beaker', icon: '🥛', width: '120px', height: '140px', radius: '5px 5px 15px 15px' },
-  { id: 'flask', name: 'Conical Flask', icon: '⚗️', width: '140px', height: '130px', radius: '50% 50% 15px 15px' },
   { id: 'testtube', name: 'Test Tube', icon: '🧪', width: '60px', height: '200px', radius: '5px 5px 30px 30px' }
 ];
 
