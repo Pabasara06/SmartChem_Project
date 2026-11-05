@@ -480,6 +480,23 @@ export function GlassVesselGraphic({
             </polygon>
           </g>
         )}
+
+        {![
+          'beaker_100', 'beaker_250', 'beaker', 'round_flask', 'flask_round',
+          'conical_flask', 'flask_conical', 'flask', 'separatory_funnel',
+          'separatory', 'gas_jar', 'gas_cylinder', 'small_test_tube',
+          'large_test_tube', 'side_arm_tube', 'testtube_small', 'testtube_large',
+          'testtube_sidearm', 'watch_glass', 'crucible', 'evaporating_dish'
+        ].includes(type) && (
+          <g filter="url(#glassGlow)">
+            <path d="M 40 22 L 40 92 Q 40 105 60 105 Q 80 105 80 92 L 80 22" fill="url(#glassBody)" stroke="#dff4ff" strokeWidth="2.2" />
+            <ellipse cx="60" cy="22" rx="20" ry="4" fill="none" stroke="#eef8ff" strokeWidth="1.8" />
+            {hasLiquid && <path d={`M 42 ${100 - liquidLevel * 58} H 78 V 95 Q 60 104 42 95 Z`} fill={liquidColor} opacity="0.8" />}
+            <text x="60" y="58" textAnchor="middle" fill="#dcefff" fontSize="7" fontFamily="monospace">
+              GLASSWARE
+            </text>
+          </g>
+        )}
       </svg>
     </div>
   );
@@ -676,6 +693,21 @@ export function ToolGraphic({
             />
           </g>
         )}
+
+        {![
+          'burner', 'heater', 'tripod', 'balance', 'thermometer', 'ph_meter',
+          'dropper', 'spatula', 'stirring_rod', 'delivery_tube'
+        ].includes(type) && (
+          <g>
+            <rect x="22" y="34" width="76" height="62" rx="10" fill="#1d344c" stroke="#8bb4ca" strokeWidth="2" />
+            <path d="M 32 48 H 88 M 32 60 H 76 M 32 72 H 84" stroke="#bfe7f3" strokeWidth="3" strokeLinecap="round" opacity="0.8" />
+            <circle cx="87" cy="82" r="7" fill="#62e5db" opacity={isActive ? '1' : '0.55'} />
+            <text x="60" y="25" textAnchor="middle" fill="#dcefff" fontSize="7" fontFamily="monospace">
+              LAB TOOL
+            </text>
+          </g>
+        )}
+
       </svg>
     </div>
   );

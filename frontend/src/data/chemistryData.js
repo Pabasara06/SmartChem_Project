@@ -139,6 +139,36 @@ export const EQUIPMENT_CATALOG = {
       capacity: 50,
       suitableFor: ['liquid', 'solid'],
       description: 'Shallow dish with pouring lip for evaporating excess solvent.'
+    },
+    {
+      id: 'volumetric_flask',
+      name: 'Volumetric Flask',
+      detail: '250 mL calibrated flask',
+      type: 'vessel',
+      vesselType: 'volumetric_flask',
+      capacity: 250,
+      suitableFor: ['liquid'],
+      description: 'Calibrated vessel for preparing solutions to an accurate final volume.'
+    },
+    {
+      id: 'measuring_cylinder',
+      name: 'Measuring Cylinder',
+      detail: '100 mL graduated cylinder',
+      type: 'vessel',
+      vesselType: 'measuring_cylinder',
+      capacity: 100,
+      suitableFor: ['liquid'],
+      description: 'Graduated cylinder for reading and transferring measured liquid volumes.'
+    },
+    {
+      id: 'reagent_bottle',
+      name: 'Reagent Bottle',
+      detail: '250 mL glass storage bottle',
+      type: 'vessel',
+      vesselType: 'reagent_bottle',
+      capacity: 250,
+      suitableFor: ['liquid', 'solid'],
+      description: 'Stoppered bottle for storing prepared laboratory reagents.'
     }
   ],
   tools: [
@@ -276,6 +306,116 @@ export const EQUIPMENT_CATALOG = {
       action: 'rinse',
       suitableFor: ['vessel'],
       description: 'Rinses glassware and adds small controlled portions of distilled water.'
+    },
+    {
+      id: 'hot_plate',
+      name: 'Digital Hot Plate',
+      detail: 'Variable 20–250 °C surface',
+      type: 'heater',
+      action: 'heat',
+      suitableFor: ['vessel'],
+      description: 'Provides controlled contact heating with an adjustable temperature readout.'
+    },
+    {
+      id: 'wire_gauze',
+      name: 'Wire Gauze',
+      detail: 'Ceramic-centre heat diffuser',
+      type: 'support',
+      action: 'support',
+      suitableFor: ['vessel', 'tripod'],
+      description: 'Distributes burner heat evenly beneath supported glassware.'
+    },
+    {
+      id: 'tongs',
+      name: 'Crucible Tongs',
+      detail: 'Spring stainless-steel tongs',
+      type: 'tool',
+      action: 'handle_hot',
+      suitableFor: ['crucible', 'vessel'],
+      description: 'Handles hot crucibles and heated vessels without direct contact.'
+    },
+    {
+      id: 'measuring_pipette',
+      name: 'Measuring Pipette',
+      detail: '10 mL graduated pipette',
+      type: 'tool',
+      action: 'pipette',
+      suitableFor: ['liquid', 'vessel'],
+      description: 'Transfers a selected liquid volume using visible graduations.'
+    },
+    {
+      id: 'volumetric_pipette',
+      name: 'Volumetric Pipette',
+      detail: '10 mL fixed-volume pipette',
+      type: 'tool',
+      action: 'pipette',
+      suitableFor: ['liquid', 'vessel'],
+      description: 'Transfers one calibrated volume accurately for solution preparation.'
+    },
+    {
+      id: 'graduated_pipette',
+      name: 'Graduated Pipette',
+      detail: '5 mL fine-scale pipette',
+      type: 'tool',
+      action: 'pipette',
+      suitableFor: ['liquid', 'vessel'],
+      description: 'Delivers small selectable volumes for controlled additions.'
+    },
+    {
+      id: 'filter_funnel',
+      name: 'Filter Funnel',
+      detail: '60 mm filtration funnel',
+      type: 'tool',
+      action: 'filter',
+      suitableFor: ['vessel'],
+      description: 'Supports filter paper while separating an insoluble solid from liquid.'
+    },
+    {
+      id: 'filter_paper',
+      name: 'Filter Paper',
+      detail: 'Qualitative cellulose circle',
+      type: 'tool',
+      action: 'filter',
+      suitableFor: ['filter_funnel'],
+      description: 'Porous paper barrier that retains solid particles during filtration.'
+    },
+    {
+      id: 'filter_flask',
+      name: 'Filter Flask',
+      detail: '250 mL side-arm flask',
+      type: 'vessel',
+      vesselType: 'filter_flask',
+      capacity: 250,
+      suitableFor: ['liquid', 'solid'],
+      description: 'Side-arm flask for receiving filtrate and supporting vacuum filtration.'
+    },
+    {
+      id: 'vacuum_filtration',
+      name: 'Vacuum Filtration Apparatus',
+      detail: 'Buchner funnel and flask set',
+      type: 'support',
+      action: 'filter',
+      suitableFor: ['filter_flask', 'filter_paper'],
+      description: 'Accelerates filtration by applying a controlled vacuum to the filter flask.'
+    },
+    {
+      id: 'mortar_pestle',
+      name: 'Mortar and Pestle',
+      detail: 'Porcelain grinding set',
+      type: 'tool',
+      action: 'grind',
+      suitableFor: ['solid'],
+      description: 'Grinds solid crystals into a uniform powder before transfer.'
+    },
+    {
+      id: 'desiccator',
+      name: 'Desiccator',
+      detail: '250 mL sealed drying chamber',
+      type: 'vessel',
+      vesselType: 'desiccator',
+      capacity: 250,
+      suitableFor: ['solid'],
+      description: 'Sealed chamber for cooling and drying samples away from atmospheric moisture.'
     }
   ],
   solid: [
@@ -1479,5 +1619,128 @@ export const SHOWCASE_CATEGORIES = [
         suitableTools: ['beaker_250', 'spatula', 'stirring_rod']
       }
     ]
+  }
+];
+
+export const EXPERIMENT_LIBRARY = [
+  {
+    id: 'sodium-chloride-formation',
+    name: 'Sodium Chloride Formation',
+    objective: 'Observe acid-base neutralization and formation of a neutral salt.',
+    theory: 'Hydrogen ions react with hydroxide ions to form water while sodium and chloride ions remain as sodium chloride.',
+    chemicals: ['hcl', 'naoh'],
+    equipment: ['beaker_100', 'dropper', 'stirring_rod', 'ph_meter'],
+    equation: 'HCl(aq) + NaOH(aq) → NaCl(aq) + H₂O(l)',
+    safety: 'Wear eye protection and avoid direct contact with acid or base.',
+    steps: ['Place a beaker and pH meter.', 'Add hydrochloric acid.', 'Add sodium hydroxide using a dropper.', 'Stir and measure the final pH.'],
+    expected: 'The solution becomes close to neutral and warms slightly.'
+  },
+  {
+    id: 'acid-base-neutralization',
+    name: 'Acid–Base Neutralization',
+    objective: 'Compare pH before and after a controlled neutralization.',
+    theory: 'A strong acid and strong base react in a 1:1 mole ratio.',
+    chemicals: ['hcl', 'naoh', 'phenolphthalein'],
+    equipment: ['beaker_100', 'dropper', 'stirring_rod', 'ph_meter'],
+    equation: 'H⁺(aq) + OH⁻(aq) → H₂O(l)',
+    safety: 'Use small virtual quantities and keep the electrode clean.',
+    steps: ['Prepare a beaker.', 'Add acid and indicator.', 'Add base dropwise.', 'Stir and measure pH at the endpoint.'],
+    expected: 'The indicator changes color as the solution passes through the endpoint.'
+  },
+  {
+    id: 'acid-carbonate',
+    name: 'Acid and Carbonate Reaction',
+    objective: 'Observe carbon dioxide evolution from an acid–carbonate reaction.',
+    theory: 'Carbonate ions form carbonic acid, which decomposes into water and carbon dioxide.',
+    chemicals: ['hcl', 'calcium_carbonate'],
+    equipment: ['side_arm_tube', 'delivery_tube', 'gas_jar'],
+    equation: 'CaCO₃(s) + 2HCl(aq) → CaCl₂(aq) + H₂O(l) + CO₂(g)',
+    safety: 'Use the delivery tube and gas jar to contain the evolved gas.',
+    steps: ['Place the side-arm tube.', 'Add calcium carbonate.', 'Add acid with a dropper.', 'Connect the delivery tube to a gas jar.'],
+    expected: 'Bubbles form and carbon dioxide is collected.'
+  },
+  {
+    id: 'precipitation',
+    name: 'Precipitation Reaction',
+    objective: 'Produce and observe an insoluble solid precipitate.',
+    theory: 'Some ionic combinations form solids with very low solubility.',
+    chemicals: ['cuso4_aq', 'naoh'],
+    equipment: ['beaker_100', 'dropper', 'stirring_rod'],
+    equation: 'CuSO₄(aq) + 2NaOH(aq) → Cu(OH)₂(s) + Na₂SO₄(aq)',
+    safety: 'Avoid contact with copper sulfate and alkaline solution.',
+    steps: ['Place a beaker.', 'Add copper sulfate solution.', 'Add sodium hydroxide.', 'Stir and observe the precipitate.'],
+    expected: 'A blue copper hydroxide precipitate settles at the bottom.'
+  },
+  {
+    id: 'metal-displacement',
+    name: 'Metal Displacement',
+    objective: 'Observe iron displacing copper from copper sulfate solution.',
+    theory: 'A more reactive metal reduces ions of a less reactive metal.',
+    chemicals: ['iron_filings', 'cuso4_aq'],
+    equipment: ['test_tube', 'spatula', 'thermometer'],
+    equation: 'Fe(s) + CuSO₄(aq) → FeSO₄(aq) + Cu(s)',
+    safety: 'Use forceps or a spatula for the solid sample.',
+    steps: ['Place a test tube.', 'Add copper sulfate solution.', 'Add iron filings.', 'Stir and measure the temperature.'],
+    expected: 'The blue solution fades toward green and copper deposits form.'
+  },
+  {
+    id: 'copper-sulfate-crystallization',
+    name: 'Copper Sulfate Crystallization',
+    objective: 'Dissolve and recover crystals through controlled evaporation.',
+    theory: 'Solubility changes with temperature and solvent evaporation.',
+    chemicals: ['cuso4_s', 'water'],
+    equipment: ['evaporating_dish', 'spatula', 'burner', 'thermometer'],
+    equation: 'CuSO₄·5H₂O(s) ⇌ Cu²⁺(aq) + SO₄²⁻(aq)',
+    safety: 'Heat gradually and do not evaporate the dish to dryness.',
+    steps: ['Place an evaporating dish.', 'Add water and copper sulfate.', 'Stir until dissolved.', 'Heat gently and observe crystallization.'],
+    expected: 'A blue solution forms and crystals appear as solvent is removed.'
+  },
+  {
+    id: 'simple-titration',
+    name: 'Simple Acid–Base Titration',
+    objective: 'Use measured additions to locate a neutralization endpoint.',
+    theory: 'A burette delivers known volumes while an indicator shows the endpoint.',
+    chemicals: ['hcl', 'naoh', 'phenolphthalein'],
+    equipment: ['conical_flask', 'burette', 'stand', 'ph_meter'],
+    equation: 'HCl(aq) + NaOH(aq) → NaCl(aq) + H₂O(l)',
+    safety: 'Check the burette connection before opening the stopcock.',
+    steps: ['Secure the burette on a stand.', 'Fill it with base.', 'Add acid and indicator to the flask.', 'Titrate until the endpoint.'],
+    expected: 'The endpoint is shown by a persistent indicator color and near-neutral pH.'
+  },
+  {
+    id: 'filtration',
+    name: 'Filtration of an Insoluble Solid',
+    objective: 'Separate an insoluble solid from a liquid mixture.',
+    theory: 'A filter retains particles while the liquid passes through.',
+    chemicals: ['calcium_carbonate', 'water'],
+    equipment: ['beaker_100', 'funnel', 'watch_glass', 'stirring_rod'],
+    equation: 'CaCO₃(s) + H₂O(l) → CaCO₃(s) suspension',
+    safety: 'Use the funnel carefully and avoid overflowing the filter.',
+    steps: ['Mix the solid and water.', 'Place the funnel over a clean vessel.', 'Transfer the suspension.', 'Observe the separated filtrate and residue.'],
+    expected: 'Clearer liquid passes through while solid remains on the filter.'
+  },
+  {
+    id: 'solubility',
+    name: 'Solubility Investigation',
+    objective: 'Compare dissolution of different solids in water.',
+    theory: 'Solubility depends on the substance, solvent, temperature, and amount present.',
+    chemicals: ['sodium_chloride', 'water', 'cuso4_s'],
+    equipment: ['beaker_100', 'balance', 'thermometer', 'stirring_rod'],
+    equation: 'NaCl(s) ⇌ Na⁺(aq) + Cl⁻(aq)',
+    safety: 'Use the balance for small virtual samples.',
+    steps: ['Measure a solid sample.', 'Add water to a beaker.', 'Add the sample and stir.', 'Compare dissolution and temperature.'],
+    expected: 'Soluble portions disappear into solution while undissolved excess remains.'
+  },
+  {
+    id: 'thermal-decomposition',
+    name: 'Thermal Decomposition Demonstration',
+    objective: 'Observe a solid changing when heated.',
+    theory: 'Some carbonates decompose into a metal oxide and carbon dioxide when heated strongly.',
+    chemicals: ['calcium_carbonate'],
+    equipment: ['crucible', 'spatula', 'burner', 'delivery_tube', 'gas_jar'],
+    equation: 'CaCO₃(s) + heat → CaO(s) + CO₂(g)',
+    safety: 'Use the crucible and burner only in the virtual supervised setup.',
+    steps: ['Place the crucible.', 'Add calcium carbonate.', 'Position the burner.', 'Heat and observe gas release.'],
+    expected: 'The solid changes and carbon dioxide is released.'
   }
 ];

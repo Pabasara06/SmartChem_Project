@@ -2329,6 +2329,24 @@ body {
   font-weight: 600;
 }
 
+.shelf-card-detail,
+.shelf-card-action {
+  display: block;
+  max-width: 100%;
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #91aec5;
+  font-size: 9px;
+}
+
+.shelf-card-action {
+  color: #72e6b5;
+  font: 700 8px var(--font-mono);
+  text-transform: uppercase;
+}
+
 .item-label-strip {
   box-shadow: 0 5px 12px rgba(0, 0, 0, 0.18);
 }
@@ -2451,4 +2469,159 @@ body {
 
 .reaction-notification-card {
   border-left: 3px solid #62e5db;
+}
+
+.experiment-procedure-panel {
+  position: absolute;
+  left: 24px;
+  bottom: 76px;
+  z-index: 34;
+  width: min(320px, calc(100% - 48px));
+  max-height: min(57vh, 500px);
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid rgba(143, 193, 231, 0.22);
+  border-radius: 16px;
+  background: rgba(8, 20, 35, 0.92);
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(15px);
+}
+
+.procedure-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 11px;
+}
+
+.procedure-panel-header strong {
+  display: block;
+  margin-top: 3px;
+  color: #f0f7ff;
+  font: 600 15px var(--font-display);
+}
+
+.procedure-progress {
+  padding: 4px 8px;
+  border: 1px solid rgba(98, 229, 219, 0.3);
+  border-radius: 999px;
+  color: #a8eee9;
+  font: 700 10px var(--font-mono);
+}
+
+.experiment-select {
+  width: 100%;
+  min-height: 36px;
+  padding: 0 9px;
+  border: 1px solid rgba(143, 193, 231, 0.22);
+  border-radius: 8px;
+  outline: none;
+  background: #10243b;
+  color: #e7f2fc;
+  font-size: 11px;
+}
+
+.experiment-objective {
+  margin: 11px 0;
+  color: #abc2d7;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.experiment-requirements {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 11px;
+}
+
+.experiment-requirements span {
+  padding: 4px 7px;
+  border-radius: 6px;
+  background: rgba(245, 183, 64, 0.12);
+  color: #f4c76d;
+  font: 600 9px var(--font-mono);
+}
+
+.experiment-requirements .requirement-ready {
+  background: rgba(52, 211, 153, 0.13);
+  color: #72e6b5;
+}
+
+.experiment-step-list {
+  display: grid;
+  gap: 7px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.experiment-step-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: #a8bed2;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.experiment-step-list li span {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(143, 193, 231, 0.25);
+  border-radius: 50%;
+  color: #9eb8cf;
+  font: 700 9px var(--font-mono);
+}
+
+.experiment-step-list li.complete {
+  color: #d7f8e9;
+}
+
+.experiment-step-list li.complete span {
+  border-color: rgba(98, 229, 219, 0.55);
+  background: rgba(52, 211, 153, 0.18);
+  color: #72e6b5;
+}
+
+.experiment-details {
+  margin-top: 13px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(143, 193, 231, 0.14);
+  color: #94aec5;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.experiment-details summary {
+  cursor: pointer;
+  color: #a8eee9;
+  font-weight: 600;
+}
+
+.experiment-details p {
+  margin-top: 7px;
+}
+
+.experiment-details code {
+  display: block;
+  margin-top: 8px;
+  padding: 6px;
+  border-radius: 6px;
+  background: rgba(5, 14, 25, 0.65);
+  color: #8ddcff;
+  font: 9px var(--font-mono);
+  white-space: normal;
+}
+
+@media (max-width: 720px) {
+  .experiment-procedure-panel {
+    left: 12px;
+    bottom: 64px;
+    width: calc(100% - 24px);
+  }
 }

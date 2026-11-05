@@ -4,7 +4,8 @@ import {
   EQUIPMENT_CATALOG,
   REACTION_RULES,
   SHOWCASE_CATEGORIES,
-  evaluateMixture
+  evaluateMixture,
+  EXPERIMENT_LIBRARY
 } from '../data/chemistryData';
 import {
   GlassVesselGraphic,
@@ -19,6 +20,8 @@ const uid = () => `item-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 export default function ExperimentLab({ initialSetup }) {
   // Navigation & Workspace State
   const [activeCategory, setActiveCategory] = useState('vessel');
+  const [libraryTab, setLibraryTab] = useState('equipment');
+  const [equipmentGroup, setEquipmentGroup] = useState('glassware');
   const [search, setSearch] = useState('');
   const [workspaceItems, setWorkspaceItems] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
@@ -34,12 +37,31 @@ export default function ExperimentLab({ initialSetup }) {
   const [sortMode, setSortMode] = useState('default'); // 'default' | 'Z' | 'hash' | 'A'
   const [handAction, setHandAction] = useState(null);
 
+  const equipmentGroups = [
+    { id: 'glassware', label: 'Glassware', icon: '⚗' },
+    { id: 'measuring', label: 'Measuring', icon: '◉' },
+    { id: 'transfer', label: 'Transfer', icon: '⌁' },
+    { id: 'heating', label: 'Heating', icon: '♨' },
+    { id: 'filtration', label: 'Filtration', icon: '▽' },
+    { id: 'other', label: 'Other', icon: '⚙' }
+  ];
+
+  const equipmentGroupIds = {
+    glassware: ['round_flask', 'separatory_funnel', 'gas_jar', 'gas_cylinder', 'small_test_tube', 'large_test_tube', 'side_arm_tube', 'beaker_100', 'beaker_250', 'conical_flask', 'watch_glass', 'crucible', 'evaporating_dish', 'volumetric_flask', 'measuring_cylinder', 'reagent_bottle', 'filter_flask', 'desiccator'],
+    measuring: ['balance', 'thermometer', 'ph_meter', 'burette', 'measuring_pipette', 'volumetric_pipette', 'graduated_pipette'],
+    transfer: ['dropper', 'funnel', 'separatory_funnel', 'stirring_rod', 'spatula', 'wash_bottle'],
+    heating: ['burner', 'hot_plate', 'tripod', 'wire_gauze', 'crucible', 'tongs'],
+    filtration: ['filter_funnel', 'filter_paper', 'filter_flask', 'vacuum_filtration'],
+    other: ['stand', 'test_tube_rack', 'mortar_pestle', 'forceps', 'delivery_tube']
+  };
+
   // Reaction Drawer & Modal States
   const [reactionsDrawerOpen, setReactionsDrawerOpen] = useState(false);
   const [activeReactionResult, setActiveReactionResult] = useState(null);
   const [isSimulating, setIsSimulating] = useState(false);
   const [labNotes, setLabNotes] = useState([]);
   const [setupModalOpen, setSetupModalOpen] = useState(false);
+  const [selectedExperimentId, setSelectedExperimentId] = useState(EXPERIMENT_LIBRARY[0].id);
 
   const canvasRef = useRef(null);
 
@@ -126,7 +148,18 @@ export default function ExperimentLab({ initialSetup }) {
 
   // Filter Catalog items based on category, search, and sorting
   const visibleEquipment = useMemo(() => {
-    let list = EQUIPMENT_CATALOG[activeCategory] || [];
+    let list;
+    if (libraryTab === 'equipment') {
+      const ids = equipmentGroupIds[equipmentGroup] || [];
+      list = [...EQUIPMENT_CATALOG.vessel, ...EQUIPMENT_CATALOG.tools].filter((item) => ids.includes(item.id));
+    } else if (libraryTab === 'tools') {
+      list = EQUIPMENT_CATALOG.tools;
+    } else {
+      list = [...EQUIPMENT_CATALOG.solid, ...EQUIPMENT_CATALOG.liquid, ...EQUIPMENT_CATALOG.gas];
+      if (activeCategory === 'solid' || activeCategory === 'liquid' || activeCategory === 'gas') {
+        list = EQUIPMENT_CATALOG[activeCategory] || [];
+      }
+    }
     const query = search.trim().toLowerCase();
 
     if (query) {
@@ -145,7 +178,7 @@ export default function ExperimentLab({ initialSetup }) {
     }
 
     return list;
-  }, [activeCategory, search, sortMode]);
+  }, [activeCategory, equipmentGroup, libraryTab, search, sortMode]);
 
   // Log Lab event
   const addLog = (message, type = 'info') => {
@@ -497,7 +530,7 @@ export default function ExperimentLab({ initialSetup }) {
     return;
     }
 
-    if (tool.id === 'burner') {
+    if (tool.id === 'burner' || tool.id === 'hot_plate') {
     handleToggleBurner(tool.uid);
     return;
     }
@@ -512,7 +545,7 @@ export default function ExperimentLab({ initialSetup }) {
     return;
     }
 
-    if (tool.id === 'dropper') {
+    if (tool.id === 'dropper' || tool.action === 'pipette') {
     const source = getNearestItem(tool, (item) => item.type === 'chemical' && item.state === 'liquid');
     const target = getNearestItem(tool, (item) => item.type === 'vessel');
     if (!source || !target) {
@@ -565,11 +598,39 @@ export default function ExperimentLab({ initialSetup }) {
     return;
     }
 
-    if (tool.id === 'burette' || tool.id === 'funnel') {
+    if (tool.id === 'burette' || tool.id === 'funnel' || tool.id === 'filter_funnel' || tool.action === 'filter') {
     const source = getNearestItem(tool, (item) => item.type === 'chemical' && item.state === 'liquid');
     const target = getNearestItem(tool, (item) => item.type === 'vessel');
     if (!source || !target) {
       addLog(`Place the ${tool.name.toLowerCase()} between a liquid reagent and a vessel.`, 'warning');
+      return;
+    }
+
+    if (tool.action === 'handle_hot') {
+      const target = getNearestItem(tool, (item) => item.type === 'vessel' || item.id === 'crucible');
+      if (!target) {
+        addLog('Place the tongs beside a vessel or crucible to handle it.', 'warning');
+        return;
+      }
+      setWorkspaceItems((items) =>
+        items.map((item) => item.uid === tool.uid ? { ...item, isActive: true, connectedTo: target.uid } : item)
+      );
+      showHandAction('hold', tool.uid, 900);
+      addLog(`${tool.name} picked up ${target.name}.`, 'success');
+      return;
+    }
+
+    if (tool.action === 'grind') {
+      const sample = getNearestItem(tool, (item) => item.type === 'chemical' && item.state === 'solid');
+      if (!sample) {
+        addLog('Place a solid chemical near the mortar and pestle.', 'warning');
+        return;
+      }
+      setWorkspaceItems((items) =>
+        items.map((item) => item.uid === tool.uid ? { ...item, isActive: true, connectedTo: sample.uid } : item)
+      );
+      showHandAction('hold', tool.uid, 1100);
+      addLog(`${tool.name} ground ${sample.name} into a finer sample.`, 'success');
       return;
     }
     transferContents(source.uid, target.uid);
@@ -607,6 +668,20 @@ export default function ExperimentLab({ initialSetup }) {
   };
 
   const selectedItem = workspaceItems.find((item) => item.uid === selectedId);
+  const selectedExperiment =
+    EXPERIMENT_LIBRARY.find((experiment) => experiment.id === selectedExperimentId) || EXPERIMENT_LIBRARY[0];
+  const experimentChemicalIds = workspaceItems.flatMap((item) =>
+    item.type === 'vessel' ? (item.contents || []).map((chemical) => chemical.id) : item.type === 'chemical' ? [item.id] : []
+  );
+  const experimentEquipmentIds = workspaceItems.map((item) => item.id);
+  const hasRequiredChemicals = selectedExperiment.chemicals.every((chemicalId) => experimentChemicalIds.includes(chemicalId));
+  const hasRequiredEquipment = selectedExperiment.equipment.some((equipmentId) => experimentEquipmentIds.includes(equipmentId));
+  const hasObservedResult = workspaceItems.some((item) => item.type === 'vessel' && (item.reaction || item.isHeating));
+  const experimentSteps = selectedExperiment.steps.map((step, index) => ({
+    text: step,
+    done: index === 0 ? hasRequiredEquipment : index === 1 ? hasRequiredChemicals : index >= 2 ? hasObservedResult : false
+  }));
+  const experimentProgress = experimentSteps.filter((step) => step.done).length;
   const guideForSelection = selectedItem
     ? selectedItem.type === 'chemical'
     ? `Place ${selectedItem.name} near a compatible vessel, then use ${selectedItem.state === 'solid' ? 'Scoop' : 'Pour'}.`
@@ -842,6 +917,49 @@ export default function ExperimentLab({ initialSetup }) {
               {selectedItem?.isActive || selectedItem?.measurement ? 'Action ready / completed' : 'Select and place equipment to begin'}
             </div>
           </div>
+
+          <aside className="experiment-procedure-panel">
+            <div className="procedure-panel-header">
+              <div>
+                <span className="catalog-panel-kicker">EXPERIMENT RUNNER</span>
+                <strong>Guided procedure</strong>
+              </div>
+              <span className="procedure-progress">{experimentProgress}/{experimentSteps.length}</span>
+            </div>
+            <select
+              className="experiment-select"
+              value={selectedExperimentId}
+              onChange={(event) => {
+                setSelectedExperimentId(event.target.value);
+                const nextExperiment = EXPERIMENT_LIBRARY.find((experiment) => experiment.id === event.target.value);
+                if (nextExperiment) setExperimentName(nextExperiment.name);
+              }}
+            >
+              {EXPERIMENT_LIBRARY.map((experiment) => (
+                <option key={experiment.id} value={experiment.id}>{experiment.name}</option>
+              ))}
+            </select>
+            <p className="experiment-objective">{selectedExperiment.objective}</p>
+            <div className="experiment-requirements">
+              <span className={hasRequiredChemicals ? 'requirement-ready' : ''}>Chemicals {hasRequiredChemicals ? 'ready' : 'needed'}</span>
+              <span className={hasRequiredEquipment ? 'requirement-ready' : ''}>Equipment {hasRequiredEquipment ? 'ready' : 'needed'}</span>
+            </div>
+            <ol className="experiment-step-list">
+              {experimentSteps.map((step, index) => (
+                <li key={`${selectedExperiment.id}-${index}`} className={step.done ? 'complete' : ''}>
+                  <span>{step.done ? '✓' : index + 1}</span>
+                  {step.text}
+                </li>
+              ))}
+            </ol>
+            <details className="experiment-details">
+              <summary>Show theory, safety & result</summary>
+              <p><b>Theory:</b> {selectedExperiment.theory}</p>
+              <p><b>Safety:</b> {selectedExperiment.safety}</p>
+              <p><b>Expected:</b> {selectedExperiment.expected}</p>
+              <code>{selectedExperiment.equation}</code>
+            </details>
+          </aside>
 
           {/* Empty workspace prompt */}
           {workspaceItems.length === 0 && (
@@ -1274,6 +1392,8 @@ export default function ExperimentLab({ initialSetup }) {
                       </div>
 
                       <h4 className="shelf-card-name">{item.name}</h4>
+                      <span className="shelf-card-detail">{item.detail}</span>
+                      <span className="shelf-card-action">{item.action || 'hold / place'}</span>
                     </article>
                   ))}
 
