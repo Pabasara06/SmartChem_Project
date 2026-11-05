@@ -1,217 +1,256 @@
 import React, { useState } from 'react';
 
+// 🧰 Full Laboratory Equipment Database
 const LAB_TOOLS = [
-  { id: 'beaker', name: 'Beaker', icon: '🥛', width: '120px', height: '140px', radius: '5px 5px 15px 15px' },
-  { id: 'testtube', name: 'Test Tube', icon: '🧪', width: '60px', height: '200px', radius: '5px 5px 30px 30px' }
+  { id: 'beaker', name: '250ml Beaker', image: '/assets/beaker.png', width: '150px', height: '180px' },
+  { id: 'flask', name: 'Erlenmeyer Flask', image: '/assets/flask.png', width: '160px', height: '180px' },
+  { id: 'testtube', name: 'Test Tube', image: '/assets/testtube.png', width: '80px', height: '250px' },
+  { id: 'volumetric', name: 'Volumetric Flask', image: '/assets/volumetric.png', width: '140px', height: '220px' },
+  { id: 'cylinder', name: 'Measuring Cylinder', image: '/assets/cylinder.png', width: '90px', height: '260px' },
+  { id: 'petridish', name: 'Petri Dish', image: '/assets/petri.png', width: '200px', height: '60px' },
+  { id: 'crucible', name: 'Crucible', image: '/assets/crucible.png', width: '100px', height: '90px' },
+  { id: 'evap_dish', name: 'Evaporating Dish', image: '/assets/evap_dish.png', width: '140px', height: '80px' }
 ];
 
-const CHEMICALS = [
-  { id: 'water', name: 'Water', formula: 'H₂O', icon: '💧', type: 'liquid', color: 'rgba(52, 152, 219, 0.4)' },
-  { id: 'sodium', name: 'Sodium', formula: 'Na', icon: '🪨', type: 'solid', color: null }
+// 🧪 Comprehensive Chemicals Database (Standard Lab Kit)
+const CHEMICAL_DB = [
+  // Solvents & Water
+  { id: 'water', name: 'Distilled Water', formula: 'H₂O', category: 'water', color: 'rgba(173, 216, 230, 0.2)' },
+  { id: 'ethanol', name: 'Ethanol', formula: 'C₂H₅OH', category: 'solvent', color: 'rgba(255, 255, 255, 0.1)' },
+  
+  // Strong Acids
+  { id: 'hcl', name: 'Hydrochloric Acid', formula: 'HCl', category: 'strong_acid', color: 'rgba(255,255,255,0.2)' },
+  { id: 'h2so4', name: 'Sulfuric Acid', formula: 'H₂SO₄', category: 'strong_acid', color: 'rgba(255,255,255,0.2)' },
+  { id: 'hno3', name: 'Nitric Acid', formula: 'HNO₃', category: 'strong_acid', color: 'rgba(255,255,255,0.2)' },
+  
+  // Weak Acids
+  { id: 'ch3cooh', name: 'Acetic Acid', formula: 'CH₃COOH', category: 'weak_acid', color: 'rgba(255,255,255,0.1)' },
+
+  // Strong Bases
+  { id: 'naoh', name: 'Sodium Hydroxide', formula: 'NaOH', category: 'strong_base', color: 'rgba(255,255,255,0.4)' },
+  { id: 'koh', name: 'Potassium Hydroxide', formula: 'KOH', category: 'strong_base', color: 'rgba(255,255,255,0.4)' },
+  
+  // Weak Bases
+  { id: 'nh4oh', name: 'Ammonium Hydroxide', formula: 'NH₄OH', category: 'weak_base', color: 'rgba(255,255,255,0.2)' },
+
+  // Reactive Metals
+  { id: 'na', name: 'Sodium Metal', formula: 'Na', category: 'alkali_metal', iconImg: '/assets/sodium.png' },
+  { id: 'k', name: 'Potassium Metal', formula: 'K', category: 'alkali_metal', iconImg: '/assets/potassium.png' },
+  { id: 'mg', name: 'Magnesium Ribbon', formula: 'Mg', category: 'alkaline_earth', iconImg: '/assets/magnesium.png' },
+  { id: 'zn', name: 'Zinc Granules', formula: 'Zn', category: 'transition_metal', iconImg: '/assets/zinc.png' },
+  { id: 'cu', name: 'Copper Turnings', formula: 'Cu', category: 'transition_metal', iconImg: '/assets/copper.png' },
+  { id: 'fe', name: 'Iron Filings', formula: 'Fe', category: 'transition_metal', iconImg: '/assets/iron.png' },
+
+  // Salts & Compounds
+  { id: 'nacl', name: 'Sodium Chloride', formula: 'NaCl', category: 'salt', color: 'rgba(255,255,255,0.3)' },
+  { id: 'cuso4', name: 'Copper(II) Sulfate', formula: 'CuSO₄', category: 'transition_salt', color: 'rgba(41, 128, 185, 0.7)' }, // Blue solution
+  { id: 'kmno4', name: 'Potassium Permanganate', formula: 'KMnO₄', category: 'oxidizer', color: 'rgba(142, 68, 173, 0.9)' }, // Deep purple
+  { id: 'k2cr2o7', name: 'Potassium Dichromate', formula: 'K₂Cr₂O₇', category: 'oxidizer', color: 'rgba(211, 84, 0, 0.8)' }, // Orange
+  { id: 'ki', name: 'Potassium Iodide', formula: 'KI', category: 'salt', color: 'rgba(255,255,255,0.2)' },
+  { id: 'agno3', name: 'Silver Nitrate', formula: 'AgNO₃', category: 'salt', color: 'rgba(255,255,255,0.2)' },
+  { id: 'caco3', name: 'Calcium Carbonate', formula: 'CaCO₃', category: 'carbonate', iconImg: '/assets/caco3.png' },
+  { id: 'nahco3', name: 'Baking Soda', formula: 'NaHCO₃', category: 'carbonate', color: 'rgba(255,255,255,0.3)' },
+
+  // Indicators
+  { id: 'phph', name: 'Phenolphthalein', formula: 'Ind', category: 'indicator', color: 'rgba(253, 167, 223, 0.1)' },
+  { id: 'methyl_orange', name: 'Methyl Orange', formula: 'Ind', category: 'indicator', color: 'rgba(243, 156, 18, 0.5)' }, // Orange
+  { id: 'universal_ind', name: 'Universal Indicator', formula: 'Ind', category: 'indicator', color: 'rgba(46, 204, 113, 0.5)' }, // Green initially
+  { id: 'litmus_blue', name: 'Blue Litmus Solution', formula: 'Ind', category: 'indicator', color: 'rgba(52, 152, 219, 0.6)' }
 ];
 
 function ExperimentLab() {
-  const [workspaceTool, setWorkspaceTool] = useState(null);
-  const [vesselContents, setVesselContents] = useState([]); 
-  const [reactionState, setReactionState] = useState('idle'); 
-  const [log, setLog] = useState('1. Drag a Tool. 2. Set Mass (g) & Drag Water, then Sodium.');
-  const [masses, setMasses] = useState({ water: 100, sodium: 5 });
-  const [calcResults, setCalcResults] = useState(null); 
+  const [activeVessel, setActiveVessel] = useState(null);
+  const [vesselContents, setVesselContents] = useState([]);
+  const [selectedChem, setSelectedChem] = useState(CHEMICAL_DB[0].id);
+  
+  const [simState, setSimState] = useState({ 
+    liquidColor: 'transparent', 
+    liquidHeight: '0%',
+    effects: [], 
+    log: 'System Ready. Select a real vessel to begin.', 
+    equation: '' 
+  });
 
-  const handleDragStart = (e, itemType, itemData) => {
-    e.dataTransfer.setData('itemType', itemType);
-    const dataToTransfer = itemType === 'chemical' ? { ...itemData, mass: masses[itemData.id] } : itemData;
-    e.dataTransfer.setData('itemData', JSON.stringify(dataToTransfer));
+  const addTool = (tool) => {
+    setActiveVessel(tool);
+    setVesselContents([]);
+    setSimState({ liquidColor: 'transparent', liquidHeight: '0%', effects: [], log: `✅ ${tool.name} placed on the lab table.`, equation: '' });
   };
 
-  const handleDragOver = (e) => e.preventDefault();
+  const addChemical = () => {
+    if (!activeVessel) return setSimState(s => ({ ...s, log: '⚠️ Add a vessel first.' }));
+    const chem = CHEMICAL_DB.find(c => c.id === selectedChem);
+    if (vesselContents.find(c => c.id === chem.id)) return;
+    
+    const newContents = [...vesselContents, chem];
+    setVesselContents(newContents);
+    
+    // Mix colors dynamically or use the strongest color
+    const liquidCount = newContents.filter(c => c.color).length;
+    const newHeight = liquidCount > 0 ? `${Math.min(10 + (liquidCount * 15), 85)}%` : '0%';
+    const dominantColor = chem.color || simState.liquidColor;
 
-  const handleDrop = (e) => {
-    e.preventDefault();
-    const itemType = e.dataTransfer.getData('itemType');
-    const itemData = JSON.parse(e.dataTransfer.getData('itemData'));
-
-    if (itemType === 'tool') {
-      setWorkspaceTool(itemData);
-      setVesselContents([]); 
-      setReactionState('idle');
-      setCalcResults(null);
-      setLog(`Placed ${itemData.name} on the workbench.`);
-      return;
-    }
-
-    if (itemType === 'chemical') {
-      if (!workspaceTool) { setLog('⚠️ Drag and drop a Lab Tool first!'); return; }
-      if (vesselContents.find(c => c.id === itemData.id)) { setLog(`⚠️ ${itemData.name} is already added.`); return; }
-      if (itemData.id === 'sodium' && !vesselContents.find(c => c.id === 'water')) { setLog('⚠️ Add Water first!'); return; }
-      if (itemData.mass <= 0) { setLog(`⚠️ Invalid mass for ${itemData.name}.`); return; }
-
-      const newContents = [...vesselContents, itemData];
-      setVesselContents(newContents);
-      setLog(`Added ${itemData.mass}g of ${itemData.name} to the ${workspaceTool.name}.`);
-      analyzeReaction(newContents);
-    }
+    setSimState(s => ({ 
+      ...s, 
+      liquidColor: dominantColor, 
+      liquidHeight: newHeight,
+      log: `Added ${chem.name} (${chem.formula}).` 
+    }));
   };
 
-  const analyzeReaction = (contents) => {
-    const has = (id) => contents.find(c => c.id === id);
+  const removeChemical = (chemId) => {
+    const updated = vesselContents.filter(c => c.id !== chemId);
+    setVesselContents(updated);
+    
+    const liquidCount = updated.filter(c => c.color).length;
+    const newHeight = liquidCount > 0 ? `${Math.min(10 + (liquidCount * 15), 85)}%` : '0%';
+    const newColor = updated.length > 0 ? (updated[updated.length - 1].color || 'transparent') : 'transparent';
 
-    if (has('water') && has('sodium')) {
-      setReactionState('reacting_sodium');
-      setLog('🔥 Sodium reacting violently! Calculating stoichiometry...');
-      
-      fetch('http://127.0.0.1:5000/api/calculate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          na_mass: contents.find(c => c.id === 'sodium').mass,
-          h2o_mass: contents.find(c => c.id === 'water').mass
-        })
-      })
-      .then(res => res.json())
-      .then(data => setCalcResults(data))
-      .catch(err => console.error("Backend Error:", err));
+    setSimState(s => ({ 
+      ...s, 
+      liquidColor: newColor, 
+      liquidHeight: newHeight,
+      log: `Removed item. Contents updated.`, 
+      effects: [], 
+      equation: '' 
+    }));
+  };
 
-      setTimeout(() => {
-        setReactionState('done_sodium');
-        setLog('✅ Reaction Complete! Final calculation report generated.');
-      }, 5000);
-    }
+  const runSimulation = () => {
+    if (vesselContents.length < 2) return setSimState(s => ({ ...s, log: '⚠️ Need at least 2 chemicals.' }));
+    setSimState(s => ({ ...s, log: '⚙️ Processing chemical reaction...' }));
+
+    fetch('http://127.0.0.1:5000/api/simulate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chemicals: vesselContents })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        setSimState(s => ({
+          ...s,
+          liquidColor: data.reaction.color !== 'transparent' ? data.reaction.color : s.liquidColor,
+          effects: data.reaction.effects,
+          log: data.reaction.message,
+          equation: data.reaction.equation
+        }));
+      }
+    }).catch(() => setSimState(s => ({ ...s, log: '❌ API Connection Failed. Check Python Backend.' })));
   };
 
   const clearWorkbench = () => {
-    setWorkspaceTool(null);
+    setActiveVessel(null);
     setVesselContents([]);
-    setReactionState('idle');
-    setCalcResults(null);
-    setLog('Workbench cleared.');
+    setSimState({ liquidColor: 'transparent', liquidHeight: '0%', effects: [], log: '🗑️ Workbench cleared.', equation: '' });
   };
 
-  let liquidHeight = '0%';
-  let currentLiquidColor = 'transparent';
-  let isBubbling = false;
-  let hasFire = false;
-  let hasSmoke = false;
-
-  const liquidChemicals = vesselContents.filter(c => c.type === 'liquid');
-  if (liquidChemicals.length > 0) {
-    liquidHeight = '50%';
-    currentLiquidColor = liquidChemicals[0].color; 
-  }
-  if (reactionState === 'done_sodium') currentLiquidColor = 'rgba(233, 30, 99, 0.3)'; 
-  if (reactionState === 'reacting_sodium') {
-    isBubbling = true; hasFire = true; hasSmoke = true;
-  }
-  const has = (id) => vesselContents.find(c => c.id === id);
+  const hasFire = simState.effects.includes('fire');
+  const hasSmoke = simState.effects.includes('smoke');
+  const hasBubbles = simState.effects.includes('bubbles');
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '1100px', margin: 'auto', display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-      <div style={{ flex: '1', minWidth: '350px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <div style={{ background: '#fff', padding: '20px', borderRadius: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>
-          <h3 style={{ margin: '0 0 15px 0', color: '#2c3e50' }}>🧰 Tools</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-            {LAB_TOOLS.map(tool => (
-              <div key={tool.id} draggable onDragStart={(e) => handleDragStart(e, 'tool', tool)} style={{ padding: '15px', background: '#e5f2f5', border: '2px dashed #16a085', borderRadius: '10px', cursor: 'grab', textAlign: 'center', fontWeight: 'bold', color: '#16a085' }}>
-                <div style={{ fontSize: '30px' }}>{tool.icon}</div><div>{tool.name}</div>
+    <div style={{ display: 'flex', height: '100vh', width: '100vw', fontFamily: 'Segoe UI, Tahoma, sans-serif', backgroundColor: '#1a1a1a', color: '#fff' }}>
+      
+      {/* LEFT PANEL: NB Lab Style Menu */}
+      <div style={{ width: '350px', backgroundColor: '#2d3436', padding: '20px', borderRight: '2px solid #000', overflowY: 'auto' }}>
+        <h2 style={{ fontSize: '18px', color: '#00cec9', borderBottom: '1px solid #636e72', paddingBottom: '10px' }}>🧪 INVENTORY & ASSETS</h2>
+        
+        <h3 style={{ fontSize: '14px', color: '#b2bec3', marginTop: '20px' }}>1. Glassware & Tools</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', maxHeight: '250px', overflowY: 'auto', paddingRight: '5px' }}>
+          {LAB_TOOLS.map(tool => (
+            <button key={tool.id} onClick={() => addTool(tool)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px', padding: '10px', background: '#636e72', border: activeVessel?.id === tool.id ? '2px solid #00cec9' : '1px solid transparent', borderRadius: '5px', color: 'white', cursor: 'pointer', transition: '0.2s' }}>
+              <div style={{ width: '50px', height: '50px', backgroundColor: '#fff', borderRadius: '5px', padding: '2px' }}>
+                <img src={tool.image} alt={tool.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} onError={(e) => e.target.src='https://via.placeholder.com/50?text=IMG'} />
               </div>
-            ))}
-          </div>
+              <span style={{ fontSize: '11px', fontWeight: 'bold', textAlign: 'center' }}>{tool.name}</span>
+            </button>
+          ))}
         </div>
 
-        <div style={{ background: '#fff', padding: '20px', borderRadius: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>
-          <h3 style={{ margin: '0 0 15px 0', color: '#2c3e50' }}>🧪 Chemicals (Set Mass)</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            {CHEMICALS.map(chem => (
-              <div key={chem.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#f8f9fa', padding: '10px', borderRadius: '8px', border: '1px solid #bdc3c7', borderLeft: '5px solid #3498db' }}>
-                <div draggable onDragStart={(e) => handleDragStart(e, 'chemical', chem)} style={{ cursor: 'grab', flex: '1', display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 'bold' }}>
-                  <span style={{ fontSize: '24px' }}>{chem.icon}</span><span>{chem.name}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <input type="number" min="1" value={masses[chem.id]} onChange={(e) => setMasses({...masses, [chem.id]: Number(e.target.value)})} style={{ width: '60px', padding: '5px', borderRadius: '5px', border: '1px solid #ccc', textAlign: 'center' }} />
-                  <span style={{ fontSize: '14px', color: '#555', fontWeight: 'bold' }}>g</span>
-                </div>
-              </div>
-            ))}
-          </div>
+        <h3 style={{ fontSize: '14px', color: '#b2bec3', marginTop: '30px' }}>2. Reagents & Chemicals</h3>
+        <select value={selectedChem} onChange={(e) => setSelectedChem(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '5px', border: 'none', backgroundColor: '#dfe6e9', color: '#2d3436', fontWeight: 'bold', fontSize: '13px' }}>
+          {CHEMICAL_DB.map(c => <option key={c.id} value={c.id}>{c.name} ({c.formula})</option>)}
+        </select>
+        <button onClick={addChemical} style={{ width: '100%', marginTop: '10px', padding: '10px', backgroundColor: '#0984e3', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>
+          + Add to Vessel
+        </button>
+
+        <h3 style={{ fontSize: '14px', color: '#b2bec3', marginTop: '30px' }}>📋 Current Contents</h3>
+        <div style={{ maxHeight: '150px', overflowY: 'auto', background: '#353b48', padding: '10px', borderRadius: '5px' }}>
+          {vesselContents.length === 0 && <span style={{ fontSize: '12px', color: '#7f8c8d' }}>Empty...</span>}
+          {vesselContents.map(chem => (
+            <div key={chem.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#2f3640', margin: '5px 0', padding: '5px 10px', borderRadius: '4px', fontSize: '12px' }}>
+              <span>{chem.formula} - {chem.name}</span>
+              <button onClick={() => removeChemical(chem.id)} style={{ background: '#e84118', color: '#fff', border: 'none', borderRadius: '3px', cursor: 'pointer', padding: '2px 5px' }}>X</button>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ marginTop: '20px' }}>
+          <button onClick={runSimulation} style={{ width: '100%', padding: '15px', backgroundColor: '#00b894', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px' }}>
+            ▶ SIMULATE REACTION
+          </button>
+          <button onClick={clearWorkbench} style={{ width: '100%', marginTop: '10px', padding: '10px', backgroundColor: '#d63031', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
+            Clear Workbench
+          </button>
         </div>
       </div>
 
-      <div onDragOver={handleDragOver} onDrop={handleDrop} style={{ flex: '2', minWidth: '400px', background: '#2c3e50', padding: '30px', borderRadius: '15px', display: 'flex', flexDirection: 'column', alignItems: 'center', border: workspaceTool ? '3px solid #1abc9c' : '3px dashed #7f8c8d' }}>
-        <h2 style={{ color: '#ecf0f1', margin: '0 0 5px 0' }}>Drop Zone</h2>
-        <p style={{ color: '#bdc3c7', fontSize: '14px', marginBottom: '30px' }}>Drop tools & chemicals here</p>
+      {/* RIGHT PANEL: The Real 3D-Like Workbench */}
+      <div style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column' }}>
         
-        <div style={{ height: '320px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', position: 'relative', width: '100%' }}>
-          {workspaceTool ? (
-            <div style={{ width: workspaceTool.width, height: workspaceTool.height, border: '4px solid rgba(255, 255, 255, 0.8)', borderTop: 'none', borderRadius: workspaceTool.radius, position: 'relative', display: 'flex', alignItems: 'flex-end', backgroundColor: 'rgba(255,255,255,0.05)' }}>
-              {hasSmoke && (
-                <div style={{ position: 'absolute', top: '-180px', left: '0', width: '100%', height: '180px', pointerEvents: 'none', display: 'flex', justifyContent: 'center' }}>
-                  <div className="smoke smoke-1"></div><div className="smoke smoke-2"></div><div className="smoke smoke-3"></div>
-                </div>
-              )}
-              <div style={{ width: '100%', height: liquidHeight, backgroundColor: currentLiquidColor, transition: 'background-color 2s ease, height 1s ease', position: 'relative', borderRadius: '0 0 10px 10px' }}>
-                {has('sodium') && (
-                  <div style={{ position: 'absolute', top: hasFire ? '-25px' : 'calc(100% - 30px)', left: '40%', fontSize: '35px', animation: hasFire ? 'jump 0.2s infinite alternate' : 'none' }}>
-                    {hasFire ? '🔥' : '🪨'}
-                  </div>
-                )}
-                {isBubbling && (
-                  <div style={{ position: 'absolute', width: '100%', height: '100%', top: 0, left: 0, display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end' }}>
-                    <span style={{ fontSize: '15px', animation: 'bubble 0.4s infinite' }}>⚪</span>
-                    <span style={{ fontSize: '20px', animation: 'bubble 0.6s infinite' }}>⚪</span>
-                  </div>
-                )}
+        <div style={{ flex: 1, position: 'relative', backgroundImage: 'url(/assets/table_bg.jpg)', backgroundSize: 'cover', backgroundPosition: 'center', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: '12vh' }}>
+          
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.8), rgba(0,0,0,0.2))', zIndex: 0 }}></div>
+
+          {activeVessel ? (
+            <div style={{ position: 'relative', width: activeVessel.width, height: activeVessel.height, zIndex: 2 }}>
+              
+              <div style={{ position: 'absolute', bottom: '5%', left: '10%', right: '10%', height: simState.liquidHeight, backgroundColor: simState.liquidColor, transition: 'all 1.5s ease-in-out', borderRadius: '0 0 40% 40%', zIndex: 1, boxShadow: simState.liquidHeight !== '0%' ? 'inset 0px -10px 20px rgba(0,0,0,0.3)' : 'none', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', overflow: 'hidden' }}>
+                {hasBubbles && <span style={{ animation: 'bubble 0.5s infinite', fontSize: '10px' }}>⚪</span>}
+                {hasBubbles && <span style={{ animation: 'bubble 0.8s infinite', fontSize: '14px' }}>⚪</span>}
               </div>
+
+              <img 
+                src={activeVessel.image} 
+                alt="vessel" 
+                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'contain', zIndex: 2, pointerEvents: 'none' }} 
+                onError={(e) => { e.target.style.display='none'; e.target.parentElement.innerHTML += '<div style="width:100%; height:100%; border:2px solid white; display:flex; align-items:center; justify-content:center;">Missing PNG</div>'; }} 
+              />
+
+              {hasFire && <img src="/assets/fire.gif" alt="fire" style={{ position: 'absolute', top: '-40%', left: '20%', width: '60%', zIndex: 3, mixBlendMode: 'screen' }} />}
+              {hasSmoke && <img src="/assets/smoke.gif" alt="smoke" style={{ position: 'absolute', top: '-150%', left: '-50%', width: '200%', opacity: 0.7, zIndex: 4, pointerEvents: 'none' }} />}
+              
             </div>
-          ) : ( <div style={{ color: '#7f8c8d', fontSize: '60px', opacity: 0.3 }}>+</div> )}
+          ) : (
+            <div style={{ zIndex: 1, color: 'rgba(255,255,255,0.4)', fontSize: '28px', letterSpacing: '3px', fontWeight: 'bold' }}>
+              EMPTY WORKBENCH
+            </div>
+          )}
         </div>
 
-        <div style={{ marginTop: '30px', padding: '15px', background: '#000', color: '#2ecc71', borderRadius: '8px', width: '100%', boxSizing: 'border-box', fontFamily: 'monospace', fontSize: '14px', textAlign: 'center' }}>
-          > {log}
-        </div>
-
-        {/* --- SIMPLE CALCULATION REPORT --- */}
-        {reactionState === 'done_sodium' && calcResults && (
-          <div style={{ marginTop: '20px', padding: '20px', background: '#fff', border: '1px solid #ccc', borderRadius: '5px', width: '100%', boxSizing: 'border-box', textAlign: 'left' }}>
-            <h3 style={{ marginTop: 0, borderBottom: '1px solid #eee', paddingBottom: '10px', color: '#333' }}>
-              Calculation Results
-            </h3>
-            
-            <p style={{ fontWeight: 'bold', color: '#555' }}>Equation: 2Na + 2H₂O → 2NaOH + H₂</p>
-            
-            <ul style={{ lineHeight: '1.8', color: '#444' }}>
-              <li>
-                <strong>Na Moles:</strong> {vesselContents.find(c => c.id === 'sodium').mass}g / 23.0 = {calcResults.mol_na} mol
-              </li>
-              <li>
-                <strong>H₂O Moles:</strong> {vesselContents.find(c => c.id === 'water').mass}g / 18.0 = {calcResults.mol_h2o} mol
-              </li>
-              <li>
-                <strong>Limiting Reactant:</strong> {calcResults.limiting}
-              </li>
-              <li>
-                <strong>NaOH Produced:</strong> {calcResults.mass_naoh} g
-              </li>
-              <li>
-                <strong>H₂ Gas Released:</strong> {calcResults.vol_h2} L
-              </li>
-            </ul>
+        {/* Bottom Console Panel */}
+        <div style={{ height: '120px', backgroundColor: '#222f3e', borderTop: '2px solid #576574', padding: '15px', display: 'flex', flexDirection: 'column', justifyContent: 'center', zIndex: 10 }}>
+          {simState.equation && (
+            <div style={{ color: '#ff9f43', fontSize: '20px', fontWeight: 'bold', marginBottom: '5px', letterSpacing: '1px' }}>
+              {simState.equation}
+            </div>
+          )}
+          <div style={{ color: '#1dd1a1', fontFamily: 'monospace', fontSize: '16px' }}>
+            [System Log] {simState.log}
           </div>
-        )}
-
-        <button onClick={clearWorkbench} style={{ marginTop: '20px', padding: '10px 25px', background: '#e74c3c', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>
-          🗑️ Clear Workbench
-        </button>
+        </div>
       </div>
 
       <style>
         {`
-          @keyframes bubble { 0% { transform: translateY(0); opacity: 0.9; } 100% { transform: translateY(-120px); opacity: 0; } }
-          @keyframes jump { 0% { transform: translateY(0) scale(1) rotate(-10deg); } 100% { transform: translateY(-20px) scale(1.2) rotate(10deg); } }
-          @keyframes rise { 0% { transform: translateY(0) scale(1); opacity: 0.8; } 100% { transform: translateY(-200px) scale(4); opacity: 0; } }
-          .smoke { position: absolute; bottom: 0; width: 40px; height: 40px; background: rgba(220, 220, 220, 0.7); border-radius: 50%; filter: blur(10px); animation: rise 2s infinite ease-in; }
-          .smoke-1 { left: 10%; animation-delay: 0s; }
-          .smoke-2 { left: 40%; animation-delay: 0.3s; width: 50px; height: 50px; }
-          .smoke-3 { left: 70%; animation-delay: 0.6s; }
+          @keyframes bubble { 0% { transform: translateY(0); opacity: 0.8; } 100% { transform: translateY(-100px); opacity: 0; } }
+          /* Scrollbar styling for inventory */
+          ::-webkit-scrollbar { width: 8px; }
+          ::-webkit-scrollbar-track { background: #2d3436; }
+          ::-webkit-scrollbar-thumb { background: #636e72; border-radius: 4px; }
+          ::-webkit-scrollbar-thumb:hover { background: #00cec9; }
         `}
       </style>
     </div>
