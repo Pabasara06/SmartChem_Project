@@ -1,260 +1,1303 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
+import {
+  CATEGORIES,
+  EQUIPMENT_CATALOG,
+  REACTION_RULES,
+  SHOWCASE_CATEGORIES,
+  evaluateMixture
+} from '../data/chemistryData';
+import {
+  GlassVesselGraphic,
+  ToolGraphic,
+  SolidChemicalGraphic,
+  LiquidChemicalGraphic
+} from './EquipmentSVGs';
 
-// 🧰 Full Laboratory Equipment Database
-const LAB_TOOLS = [
-  { id: 'beaker', name: '250ml Beaker', image: '/assets/beaker.png', width: '150px', height: '180px' },
-  { id: 'flask', name: 'Erlenmeyer Flask', image: '/assets/flask.png', width: '160px', height: '180px' },
-  { id: 'testtube', name: 'Test Tube', image: '/assets/testtube.png', width: '80px', height: '250px' },
-  { id: 'volumetric', name: 'Volumetric Flask', image: '/assets/volumetric.png', width: '140px', height: '220px' },
-  { id: 'cylinder', name: 'Measuring Cylinder', image: '/assets/cylinder.png', width: '90px', height: '260px' },
-  { id: 'petridish', name: 'Petri Dish', image: '/assets/petri.png', width: '200px', height: '60px' },
-  { id: 'crucible', name: 'Crucible', image: '/assets/crucible.png', width: '100px', height: '90px' },
-  { id: 'evap_dish', name: 'Evaporating Dish', image: '/assets/evap_dish.png', width: '140px', height: '80px' }
-];
+const uid = () => `item-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
-// 🧪 Comprehensive Chemicals Database (Standard Lab Kit)
-const CHEMICAL_DB = [
-  // Solvents & Water
-  { id: 'water', name: 'Distilled Water', formula: 'H₂O', category: 'water', color: 'rgba(173, 216, 230, 0.2)' },
-  { id: 'ethanol', name: 'Ethanol', formula: 'C₂H₅OH', category: 'solvent', color: 'rgba(255, 255, 255, 0.1)' },
-  
-  // Strong Acids
-  { id: 'hcl', name: 'Hydrochloric Acid', formula: 'HCl', category: 'strong_acid', color: 'rgba(255,255,255,0.2)' },
-  { id: 'h2so4', name: 'Sulfuric Acid', formula: 'H₂SO₄', category: 'strong_acid', color: 'rgba(255,255,255,0.2)' },
-  { id: 'hno3', name: 'Nitric Acid', formula: 'HNO₃', category: 'strong_acid', color: 'rgba(255,255,255,0.2)' },
-  
-  // Weak Acids
-  { id: 'ch3cooh', name: 'Acetic Acid', formula: 'CH₃COOH', category: 'weak_acid', color: 'rgba(255,255,255,0.1)' },
+export default function ExperimentLab({ initialSetup }) {
+  // Navigation & Workspace State
+  const [activeCategory, setActiveCategory] = useState('vessel');
+  const [search, setSearch] = useState('');
+  const [workspaceItems, setWorkspaceItems] = useState([]);
+  const [selectedId, setSelectedId] = useState(null);
+  const [draggingId, setDraggingId] = useState(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [experimentName, setExperimentName] = useState('Unnamed');
+  const [editingName, setEditingName] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [zoomLevel, setZoomLevel] = useState(100);
+  const [zoomDropdownOpen, setZoomDropdownOpen] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const [activeTool, setActiveTool] = useState('pointer'); // 'pointer' | 'pen' | 'select'
+  const [sortMode, setSortMode] = useState('default'); // 'default' | 'Z' | 'hash' | 'A'
 
-  // Strong Bases
-  { id: 'naoh', name: 'Sodium Hydroxide', formula: 'NaOH', category: 'strong_base', color: 'rgba(255,255,255,0.4)' },
-  { id: 'koh', name: 'Potassium Hydroxide', formula: 'KOH', category: 'strong_base', color: 'rgba(255,255,255,0.4)' },
-  
-  // Weak Bases
-  { id: 'nh4oh', name: 'Ammonium Hydroxide', formula: 'NH₄OH', category: 'weak_base', color: 'rgba(255,255,255,0.2)' },
+  // Reaction Drawer & Modal States
+  const [reactionsDrawerOpen, setReactionsDrawerOpen] = useState(false);
+  const [activeReactionResult, setActiveReactionResult] = useState(null);
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [labNotes, setLabNotes] = useState([]);
+  const [setupModalOpen, setSetupModalOpen] = useState(false);
 
-  // Reactive Metals
-  { id: 'na', name: 'Sodium Metal', formula: 'Na', category: 'alkali_metal', iconImg: '/assets/sodium.png' },
-  { id: 'k', name: 'Potassium Metal', formula: 'K', category: 'alkali_metal', iconImg: '/assets/potassium.png' },
-  { id: 'mg', name: 'Magnesium Ribbon', formula: 'Mg', category: 'alkaline_earth', iconImg: '/assets/magnesium.png' },
-  { id: 'zn', name: 'Zinc Granules', formula: 'Zn', category: 'transition_metal', iconImg: '/assets/zinc.png' },
-  { id: 'cu', name: 'Copper Turnings', formula: 'Cu', category: 'transition_metal', iconImg: '/assets/copper.png' },
-  { id: 'fe', name: 'Iron Filings', formula: 'Fe', category: 'transition_metal', iconImg: '/assets/iron.png' },
+  const canvasRef = useRef(null);
 
-  // Salts & Compounds
-  { id: 'nacl', name: 'Sodium Chloride', formula: 'NaCl', category: 'salt', color: 'rgba(255,255,255,0.3)' },
-  { id: 'cuso4', name: 'Copper(II) Sulfate', formula: 'CuSO₄', category: 'transition_salt', color: 'rgba(41, 128, 185, 0.7)' }, // Blue solution
-  { id: 'kmno4', name: 'Potassium Permanganate', formula: 'KMnO₄', category: 'oxidizer', color: 'rgba(142, 68, 173, 0.9)' }, // Deep purple
-  { id: 'k2cr2o7', name: 'Potassium Dichromate', formula: 'K₂Cr₂O₇', category: 'oxidizer', color: 'rgba(211, 84, 0, 0.8)' }, // Orange
-  { id: 'ki', name: 'Potassium Iodide', formula: 'KI', category: 'salt', color: 'rgba(255,255,255,0.2)' },
-  { id: 'agno3', name: 'Silver Nitrate', formula: 'AgNO₃', category: 'salt', color: 'rgba(255,255,255,0.2)' },
-  { id: 'caco3', name: 'Calcium Carbonate', formula: 'CaCO₃', category: 'carbonate', iconImg: '/assets/caco3.png' },
-  { id: 'nahco3', name: 'Baking Soda', formula: 'NaHCO₃', category: 'carbonate', color: 'rgba(255,255,255,0.3)' },
-
-  // Indicators
-  { id: 'phph', name: 'Phenolphthalein', formula: 'Ind', category: 'indicator', color: 'rgba(253, 167, 223, 0.1)' },
-  { id: 'methyl_orange', name: 'Methyl Orange', formula: 'Ind', category: 'indicator', color: 'rgba(243, 156, 18, 0.5)' }, // Orange
-  { id: 'universal_ind', name: 'Universal Indicator', formula: 'Ind', category: 'indicator', color: 'rgba(46, 204, 113, 0.5)' }, // Green initially
-  { id: 'litmus_blue', name: 'Blue Litmus Solution', formula: 'Ind', category: 'indicator', color: 'rgba(52, 152, 219, 0.6)' }
-];
-
-function ExperimentLab() {
-  const [activeVessel, setActiveVessel] = useState(null);
-  const [vesselContents, setVesselContents] = useState([]);
-  const [selectedChem, setSelectedChem] = useState(CHEMICAL_DB[0].id);
-  
-  const [simState, setSimState] = useState({ 
-    liquidColor: 'transparent', 
-    liquidHeight: '0%',
-    effects: [], 
-    log: 'System Ready. Select a real vessel to begin.', 
-    equation: '' 
-  });
-
-  const addTool = (tool) => {
-    setActiveVessel(tool);
-    setVesselContents([]);
-    setSimState({ liquidColor: 'transparent', liquidHeight: '0%', effects: [], log: `✅ ${tool.name} placed on the lab table.`, equation: '' });
-  };
-
-  const addChemical = () => {
-    if (!activeVessel) return setSimState(s => ({ ...s, log: '⚠️ Add a vessel first.' }));
-    const chem = CHEMICAL_DB.find(c => c.id === selectedChem);
-    if (vesselContents.find(c => c.id === chem.id)) return;
-    
-    const newContents = [...vesselContents, chem];
-    setVesselContents(newContents);
-    
-    // Mix colors dynamically or use the strongest color
-    const liquidCount = newContents.filter(c => c.color).length;
-    const newHeight = liquidCount > 0 ? `${Math.min(10 + (liquidCount * 15), 85)}%` : '0%';
-    const dominantColor = chem.color || simState.liquidColor;
-
-    setSimState(s => ({ 
-      ...s, 
-      liquidColor: dominantColor, 
-      liquidHeight: newHeight,
-      log: `Added ${chem.name} (${chem.formula}).` 
-    }));
-  };
-
-  const removeChemical = (chemId) => {
-    const updated = vesselContents.filter(c => c.id !== chemId);
-    setVesselContents(updated);
-    
-    const liquidCount = updated.filter(c => c.color).length;
-    const newHeight = liquidCount > 0 ? `${Math.min(10 + (liquidCount * 15), 85)}%` : '0%';
-    const newColor = updated.length > 0 ? (updated[updated.length - 1].color || 'transparent') : 'transparent';
-
-    setSimState(s => ({ 
-      ...s, 
-      liquidColor: newColor, 
-      liquidHeight: newHeight,
-      log: `Removed item. Contents updated.`, 
-      effects: [], 
-      equation: '' 
-    }));
-  };
-
-  const runSimulation = () => {
-    if (vesselContents.length < 2) return setSimState(s => ({ ...s, log: '⚠️ Need at least 2 chemicals.' }));
-    setSimState(s => ({ ...s, log: '⚙️ Processing chemical reaction...' }));
-
-    fetch('http://127.0.0.1:5000/api/simulate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chemicals: vesselContents })
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        setSimState(s => ({
-          ...s,
-          liquidColor: data.reaction.color !== 'transparent' ? data.reaction.color : s.liquidColor,
-          effects: data.reaction.effects,
-          log: data.reaction.message,
-          equation: data.reaction.equation
-        }));
+  // Initialize with default or passed setup
+  useEffect(() => {
+    if (initialSetup) {
+      if (initialSetup.name) setExperimentName(initialSetup.name);
+      loadExperimentPreset(initialSetup);
+    } else if (workspaceItems.length === 0) {
+      // Default clean bench setup: Beaker 100mL + Dropper ready to go
+      const beakerDef = EQUIPMENT_CATALOG.vessel.find((v) => v.id === 'beaker_100') || EQUIPMENT_CATALOG.vessel[7];
+      if (beakerDef) {
+        setWorkspaceItems([
+          {
+            ...beakerDef,
+            uid: uid(),
+            x: 240,
+            y: 200,
+            contents: [],
+            liquidLevel: 0,
+            liquidColor: '#58aee8',
+            solidContent: null,
+            temperature: 25.0,
+            isHeating: false,
+            isStirring: false,
+            reaction: null,
+            connectedTo: null,
+            measurement: null
+          }
+        ]);
       }
-    }).catch(() => setSimState(s => ({ ...s, log: '❌ API Connection Failed. Check Python Backend.' })));
+    }
+  }, [initialSetup]);
+
+  const loadExperimentPreset = (preset) => {
+    const vesselDef =
+      EQUIPMENT_CATALOG.vessel.find((v) => v.id === preset.vesselId) ||
+      EQUIPMENT_CATALOG.vessel.find((v) => v.id === 'beaker_250');
+
+    const items = [];
+    if (vesselDef) {
+      const vesselItem = {
+        ...vesselDef,
+        uid: uid(),
+        x: 280,
+        y: 200,
+        contents: preset.chemicals || [],
+        liquidLevel: preset.chemicals?.some((c) => c.state === 'liquid') ? 0.6 : 0,
+        liquidColor: preset.chemicals?.[0]?.color || '#58aee8',
+        solidContent: preset.chemicals?.find((c) => c.state === 'solid') || null,
+        temperature: preset.isHeating ? 85.0 : 25.0,
+        isHeating: preset.isHeating || false,
+        isStirring: false,
+        reaction: null
+      };
+
+      if (preset.chemicals?.length >= 2) {
+        const res = evaluateMixture(preset.chemicals, preset.isHeating);
+        if (res) {
+          vesselItem.reaction = res;
+          vesselItem.liquidColor = res.after_color || res.color;
+          setActiveReactionResult(res);
+        }
+      }
+      items.push(vesselItem);
+
+      if (preset.isHeating) {
+        const burnerDef = EQUIPMENT_CATALOG.tools.find((t) => t.id === 'burner');
+        if (burnerDef) {
+          items.push({
+            ...burnerDef,
+            uid: uid(),
+            x: 280,
+            y: 335,
+            isActive: true
+          });
+        }
+      }
+    }
+    setWorkspaceItems(items);
+    setReactionsDrawerOpen(false);
+    addLog(`Loaded preset: ${preset.name || 'Experiment'}`);
   };
 
-  const clearWorkbench = () => {
-    setActiveVessel(null);
-    setVesselContents([]);
-    setSimState({ liquidColor: 'transparent', liquidHeight: '0%', effects: [], log: '🗑️ Workbench cleared.', equation: '' });
+  // Filter Catalog items based on category, search, and sorting
+  const visibleEquipment = useMemo(() => {
+    let list = EQUIPMENT_CATALOG[activeCategory] || [];
+    const query = search.trim().toLowerCase();
+
+    if (query) {
+      list = list.filter(
+        (item) =>
+          item.name.toLowerCase().includes(query) ||
+          item.detail.toLowerCase().includes(query) ||
+          (item.formula && item.formula.toLowerCase().includes(query))
+      );
+    }
+
+    if (sortMode === 'A') {
+      list = [...list].sort((a, b) => a.name.localeCompare(b.name));
+    } else if (sortMode === 'Z') {
+      list = [...list].sort((a, b) => (a.formula || a.name).localeCompare(b.formula || b.name));
+    }
+
+    return list;
+  }, [activeCategory, search, sortMode]);
+
+  // Log Lab event
+  const addLog = (message, type = 'info') => {
+    setLabNotes((prev) => [
+      { id: uid(), time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }), message, type },
+      ...prev.slice(0, 15)
+    ]);
   };
 
-  const hasFire = simState.effects.includes('fire');
-  const hasSmoke = simState.effects.includes('smoke');
-  const hasBubbles = simState.effects.includes('bubbles');
+  // Add chemical directly into vessel
+  const addChemicalToVessel = (chemical, vesselId) => {
+    setWorkspaceItems((items) =>
+      items.map((i) => {
+        if (i.uid === vesselId) {
+          const newContents = [...i.contents, chemical];
+          const newLiquidLevel = Math.min(1.0, (i.liquidLevel || 0) + (chemical.state === 'liquid' ? 0.35 : 0));
+          const newSolid = chemical.state === 'solid' ? chemical : i.solidContent;
+          const rxn = evaluateMixture(newContents, i.isHeating);
+          const newColor = rxn ? rxn.after_color || rxn.color : chemical.state === 'liquid' ? chemical.color : i.liquidColor;
+
+          if (rxn) {
+            setActiveReactionResult(rxn);
+            addLog(`Reaction: ${rxn.name}! (${rxn.equation})`, 'success');
+          } else {
+            addLog(`${chemical.name} added to ${i.name}.`);
+          }
+
+          return {
+            ...i,
+            contents: newContents,
+            liquidLevel: newLiquidLevel,
+            solidContent: newSolid,
+            liquidColor: newColor,
+            reaction: rxn,
+            temperature: rxn?.temperatureChange ? i.temperature + rxn.temperatureChange : i.temperature
+          };
+        }
+        return i;
+      })
+    );
+  };
+
+  // Place item onto the canvas
+  const placeItem = (itemDef, coords) => {
+    const defaultX = 140 + (workspaceItems.length % 5) * 125;
+    const defaultY = 160 + (workspaceItems.length % 3) * 110;
+
+    const newItem = {
+      ...itemDef,
+      uid: uid(),
+      x: coords?.x ?? defaultX,
+      y: coords?.y ?? defaultY,
+      contents: itemDef.type === 'chemical' ? [itemDef] : [],
+      liquidLevel: itemDef.type === 'chemical' && itemDef.state === 'liquid' ? 0.75 : 0,
+      liquidColor: itemDef.color || '#58aee8',
+      solidContent: itemDef.state === 'solid' ? itemDef : null,
+      temperature: 25.0,
+      mass: itemDef.mass || (itemDef.type === 'vessel' ? 120.0 : 0),
+      isHeating: false,
+      isStirring: false,
+      isActive: false,
+      reaction: null
+    };
+
+    setWorkspaceItems((prev) => [...prev, newItem]);
+    setSelectedId(newItem.uid);
+    addLog(`Placed ${itemDef.name} onto the bench.`);
+  };
+
+  // Drag from catalog handlers
+  const handleCatalogDragStart = (e, item) => {
+    e.dataTransfer.setData('smartchem-item', JSON.stringify(item));
+    e.dataTransfer.effectAllowed = 'copy';
+  };
+
+  const handleCanvasDrop = (e) => {
+    e.preventDefault();
+    const data = e.dataTransfer.getData('smartchem-item');
+    if (!data || !canvasRef.current) return;
+    const item = JSON.parse(data);
+    const bounds = canvasRef.current.getBoundingClientRect();
+    const dropX = Math.max(10, e.clientX - bounds.left - 55);
+    const dropY = Math.max(10, e.clientY - bounds.top - 55);
+
+    // If dropped directly onto an existing vessel on the bench, pour/add it in!
+    if (item.type === 'chemical') {
+      const targetVessel = workspaceItems.find(
+        (v) => v.type === 'vessel' && Math.hypot(v.x - dropX, v.y - dropY) < 75
+      );
+      if (targetVessel) {
+        addChemicalToVessel(item, targetVessel.uid);
+        return;
+      }
+    }
+
+    placeItem(item, { x: dropX, y: dropY });
+  };
+
+  // Canvas Move Handlers for placed items
+  const handleMouseDownItem = (e, item) => {
+    if (isLocked) return;
+    e.stopPropagation();
+    setSelectedId(item.uid);
+    setDraggingId(item.uid);
+
+    const bounds = canvasRef.current.getBoundingClientRect();
+    setDragOffset({
+      x: e.clientX - bounds.left - item.x,
+      y: e.clientY - bounds.top - item.y
+    });
+  };
+
+  const handleCanvasMouseMove = (e) => {
+    if (!draggingId || !canvasRef.current || isLocked) return;
+    const bounds = canvasRef.current.getBoundingClientRect();
+    const newX = Math.max(10, Math.min(bounds.width - 120, e.clientX - bounds.left - dragOffset.x));
+    const newY = Math.max(10, Math.min(bounds.height - 120, e.clientY - bounds.top - dragOffset.y));
+
+    setWorkspaceItems((items) =>
+      items.map((item) => (item.uid === draggingId ? { ...item, x: newX, y: newY } : item))
+    );
+  };
+
+  const handleCanvasMouseUp = () => {
+    if (!draggingId) return;
+
+    const dragged = workspaceItems.find((i) => i.uid === draggingId);
+    if (dragged) {
+      // 1. Pouring chemical into a vessel when dropped over it
+      if (dragged.type === 'chemical') {
+        const targetVessel = workspaceItems.find(
+          (v) => v.type === 'vessel' && v.uid !== dragged.uid && Math.hypot(v.x - dragged.x, v.y - dragged.y) < 75
+        );
+        if (targetVessel) {
+          transferContents(dragged.uid, targetVessel.uid);
+        }
+      }
+
+      // 2. Placing vessel on top of a burner
+      if (dragged.type === 'vessel') {
+        const burner = workspaceItems.find(
+          (b) => b.type === 'heater' && Math.hypot(b.x - dragged.x, b.y - (dragged.y + 70)) < 65
+        );
+        if (burner && burner.isActive) {
+          heatVessel(dragged.uid);
+        }
+      }
+
+      if (dragged.type === 'meter') {
+        const target = workspaceItems.find(
+          (item) =>
+            item.uid !== dragged.uid &&
+            (item.type === 'vessel' || item.type === 'chemical') &&
+            Math.hypot(item.x - dragged.x, item.y - dragged.y) < 105
+        );
+        if (target) {
+          setWorkspaceItems((items) =>
+            items.map((item) =>
+              item.uid === dragged.uid
+                ? {
+                    ...item,
+                    connectedTo: target.uid,
+                    x: target.x + 15,
+                    y: target.y + (dragged.id === 'thermometer' ? 18 : 28)
+                  }
+                : item
+            )
+          );
+          addLog(`${dragged.name} connected to ${target.name}.`);
+        }
+      }
+    }
+
+    setDraggingId(null);
+  };
+
+  const handleMeterMeasurement = (meter) => {
+    const target = workspaceItems.find((item) => item.uid === meter.connectedTo);
+    if (!target) {
+      addLog(`Connect ${meter.name} to a vessel or sample first.`, 'warning');
+      return;
+    }
+
+    const vessel = target.type === 'vessel' ? target : workspaceItems.find((item) => item.uid === target.connectedTo);
+    const contents = vessel?.contents || (target.type === 'chemical' ? [target] : []);
+    let value = '0.00';
+    let unit = 'g';
+
+    if (meter.id === 'thermometer') {
+      value = Number(vessel?.temperature ?? target.temperature ?? 25).toFixed(1);
+      unit = '°C';
+    } else if (meter.id === 'ph_meter') {
+      const categories = contents.map((item) => item.category);
+      value = categories.includes('strong_acid') ? '1.0' : categories.includes('strong_base') ? '13.0' : '7.0';
+      unit = 'pH';
+    } else if (meter.id === 'balance') {
+      value = contents.reduce((sum, item) => sum + Number(item.mass || 0), Number(vessel?.tare || 0)).toFixed(2);
+    }
+
+    const reading = `${value} ${unit}`;
+    setWorkspaceItems((items) =>
+      items.map((item) => item.uid === meter.uid ? { ...item, measurement: reading, isActive: true } : item)
+    );
+    addLog(`${meter.name} reading: ${reading} (${target.name}).`, 'success');
+  };
+
+  // Transfer / Pour chemical contents into a target vessel
+  const transferContents = (sourceId, targetId) => {
+    const source = workspaceItems.find((i) => i.uid === sourceId);
+    const target = workspaceItems.find((i) => i.uid === targetId);
+    if (!source || !target) return;
+
+    const sourceChem = source.type === 'chemical' ? source : source.contents[0];
+    if (!sourceChem) return;
+
+    setWorkspaceItems((items) =>
+      items.map((i) => (i.uid === sourceId ? { ...i, isPouring: true } : i))
+    );
+
+    setTimeout(() => {
+      setWorkspaceItems((items) => {
+        const updatedTarget = items.find((i) => i.uid === targetId);
+        if (!updatedTarget) return items;
+
+        const newContents = [...updatedTarget.contents, sourceChem];
+        const newLiquidLevel = Math.min(1.0, (updatedTarget.liquidLevel || 0) + (sourceChem.state === 'liquid' ? 0.35 : 0));
+        const newSolid = sourceChem.state === 'solid' ? sourceChem : updatedTarget.solidContent;
+
+        const reactionResult = evaluateMixture(newContents, updatedTarget.isHeating);
+        const newColor = reactionResult
+          ? reactionResult.after_color || reactionResult.color
+          : sourceChem.state === 'liquid'
+          ? sourceChem.color
+          : updatedTarget.liquidColor;
+
+        if (reactionResult) {
+          setActiveReactionResult(reactionResult);
+          addLog(`Reaction: ${reactionResult.name}!`, 'success');
+        } else {
+          addLog(`${source.name} added into ${target.name}.`);
+        }
+
+        return items
+          .filter((i) => (source.type === 'chemical' ? i.uid !== sourceId : true))
+          .map((i) => {
+            if (i.uid === targetId) {
+              return {
+                ...i,
+                contents: newContents,
+                liquidLevel: newLiquidLevel,
+                solidContent: newSolid,
+                liquidColor: newColor,
+                reaction: reactionResult,
+                temperature: reactionResult?.temperatureChange
+                  ? i.temperature + reactionResult.temperatureChange
+                  : i.temperature
+              };
+            }
+            if (i.uid === sourceId && source.type !== 'chemical') {
+              return { ...i, isPouring: false, liquidLevel: 0, contents: [], solidContent: null };
+            }
+            return i;
+          });
+      });
+    }, 600);
+  };
+
+  // Manual Pour / Scoop Action
+  const handlePourAction = (sourceItem) => {
+    const targetVessel = workspaceItems.find(
+      (v) => v.type === 'vessel' && v.uid !== sourceItem.uid && Math.hypot(v.x - sourceItem.x, v.y - sourceItem.y) < 240
+    );
+    if (!targetVessel) {
+      addLog(`Move ${sourceItem.name} near a reaction vessel to transfer.`, 'warning');
+      return;
+    }
+    transferContents(sourceItem.uid, targetVessel.uid);
+  };
+
+  // Stir vessel contents
+  const handleStirAction = (vesselId) => {
+    setWorkspaceItems((items) =>
+      items.map((i) => (i.uid === vesselId ? { ...i, isStirring: true } : i))
+    );
+    addLog('Stirring mixture with glass stirring rod...');
+    setTimeout(() => {
+      setWorkspaceItems((items) =>
+        items.map((i) => {
+          if (i.uid === vesselId) {
+            const rxn = evaluateMixture(i.contents, i.isHeating);
+            return {
+              ...i,
+              isStirring: false,
+              reaction: rxn || i.reaction,
+              liquidColor: rxn ? rxn.after_color || rxn.color : i.liquidColor
+            };
+          }
+          return i;
+        })
+      );
+    }, 1200);
+  };
+
+  // Toggle heating on burner
+  const handleToggleBurner = (burnerId) => {
+    setWorkspaceItems((items) => {
+      const burner = items.find((i) => i.uid === burnerId);
+      const nextActive = !burner.isActive;
+      addLog(nextActive ? 'Bunsen burner ignited.' : 'Bunsen burner extinguished.');
+
+      return items.map((item) => {
+        if (item.uid === burnerId) return { ...item, isActive: nextActive };
+        if (item.type === 'vessel' && Math.hypot(item.x - burner.x, item.y - (burner.y - 70)) < 80) {
+          const rxn = evaluateMixture(item.contents, nextActive);
+          return {
+            ...item,
+            isHeating: nextActive,
+            temperature: nextActive ? 85.0 : 25.0,
+            reaction: rxn || item.reaction,
+            liquidColor: rxn ? rxn.after_color || rxn.color : item.liquidColor
+          };
+        }
+        return item;
+      });
+    });
+  };
+
+  const getNearestItem = (source, predicate, distance = 260) =>
+    workspaceItems
+    .filter((item) => item.uid !== source?.uid && predicate(item))
+    .map((item) => ({ item, distance: Math.hypot(item.x - source.x, item.y - source.y) }))
+    .filter(({ distance: itemDistance }) => itemDistance <= distance)
+    .sort((a, b) => a.distance - b.distance)[0]?.item;
+
+  const handleToolAction = (tool) => {
+    if (tool.type === 'meter') {
+    handleMeterMeasurement(tool);
+    return;
+    }
+
+    if (tool.id === 'burner') {
+    handleToggleBurner(tool.uid);
+    return;
+    }
+
+    if (tool.id === 'stirring_rod') {
+    const vessel = getNearestItem(tool, (item) => item.type === 'vessel' && item.contents.length > 0);
+    if (!vessel) {
+      addLog('Place the stirring rod beside a vessel containing chemicals.', 'warning');
+      return;
+    }
+    handleStirAction(vessel.uid);
+    return;
+    }
+
+    if (tool.id === 'dropper') {
+    const source = getNearestItem(tool, (item) => item.type === 'chemical' && item.state === 'liquid');
+    const target = getNearestItem(tool, (item) => item.type === 'vessel');
+    if (!source || !target) {
+      addLog('Place the dropper near a liquid reagent and a vessel.', 'warning');
+      return;
+    }
+    transferContents(source.uid, target.uid);
+    addLog(`Dropper delivered a controlled addition of ${source.name}.`, 'success');
+    return;
+    }
+
+    if (tool.id === 'spatula') {
+    const source = getNearestItem(tool, (item) => item.type === 'chemical' && item.state === 'solid');
+    const target = getNearestItem(tool, (item) => item.type === 'vessel');
+    if (!source || !target) {
+      addLog('Place the spatula near a solid reagent and a vessel.', 'warning');
+      return;
+    }
+    transferContents(source.uid, target.uid);
+    addLog(`Spatula transferred a small portion of ${source.name}.`, 'success');
+    return;
+    }
+
+    if (tool.id === 'forceps') {
+    const sample = getNearestItem(tool, (item) => item.type === 'chemical' && item.state === 'solid');
+    if (!sample) {
+      addLog('Place the forceps beside a solid sample to handle it.', 'warning');
+      return;
+    }
+    setWorkspaceItems((items) =>
+      items.map((item) => item.uid === tool.uid ? { ...item, isActive: true, connectedTo: sample.uid } : item)
+    );
+    addLog(`Forceps safely picked up ${sample.name}.`, 'success');
+    return;
+    }
+
+    if (tool.id === 'delivery_tube') {
+    const source = getNearestItem(tool, (item) => item.type === 'vessel' && item.contents.length > 0);
+    const receiver = getNearestItem(tool, (item) => item.id === 'gas_jar' || item.id === 'gas_collection');
+    if (!source || !receiver) {
+      addLog('Place the delivery tube between a reacting vessel and a gas jar.', 'warning');
+      return;
+    }
+    setWorkspaceItems((items) =>
+      items.map((item) => item.uid === tool.uid ? { ...item, isActive: true, connectedTo: source.uid, receiverUid: receiver.uid } : item)
+    );
+    addLog(`Delivery tube connected ${source.name} to ${receiver.name}.`, 'success');
+    return;
+    }
+
+    if (tool.type === 'support') {
+    const vessel = getNearestItem(tool, (item) => item.type === 'vessel');
+    if (!vessel) {
+      addLog(`Place ${tool.name} beside compatible glassware first.`, 'warning');
+      return;
+    }
+    setWorkspaceItems((items) =>
+      items.map((item) => item.uid === tool.uid ? { ...item, isActive: true, connectedTo: vessel.uid } : item)
+    );
+    addLog(`${tool.name} secured ${vessel.name}.`, 'success');
+    }
+  };
+
+  const selectedItem = workspaceItems.find((item) => item.uid === selectedId);
+  const guideForSelection = selectedItem
+    ? selectedItem.type === 'chemical'
+    ? `Place ${selectedItem.name} near a compatible vessel, then use ${selectedItem.state === 'solid' ? 'Scoop' : 'Pour'}.`
+    : selectedItem.type === 'vessel'
+    ? selectedItem.contents.length
+      ? 'Select a stirring rod or a measurement tool, then place it close to this vessel.'
+      : 'Add a liquid or solid reagent to this vessel from the equipment catalog.'
+    : selectedItem.action === 'heat'
+    ? 'Place the burner beneath a vessel and ignite it to start heating.'
+    : selectedItem.action === 'measure_temp'
+    ? 'Place the thermometer probe inside a vessel, then press Measure.'
+    : selectedItem.action === 'measure_ph'
+    ? 'Place the pH electrode inside a liquid vessel, then press Measure.'
+    : selectedItem.action === 'weigh'
+    ? 'Place a solid or sample vessel near the balance, then press Measure.'
+    : selectedItem.description || 'Place this tool beside compatible equipment and use its action button.'
+    : 'Select equipment from the catalog, place it on the bench, and follow the guided action.';
+
+  const heatVessel = (vesselId) => {
+    setWorkspaceItems((items) =>
+      items.map((i) => {
+        if (i.uid === vesselId) {
+          const rxn = evaluateMixture(i.contents, true);
+          return {
+            ...i,
+            isHeating: true,
+            temperature: 85.0,
+            reaction: rxn || i.reaction,
+            liquidColor: rxn ? rxn.after_color || rxn.color : i.liquidColor
+          };
+        }
+        return i;
+      })
+    );
+  };
+
+  // Empty / Clean a vessel
+  const handleEmptyVessel = (vesselId) => {
+    setWorkspaceItems((items) =>
+      items.map((i) =>
+        i.uid === vesselId
+          ? {
+              ...i,
+              contents: [],
+              liquidLevel: 0,
+              solidContent: null,
+              reaction: null,
+              liquidColor: '#58aee8',
+              temperature: 25.0
+            }
+          : i
+      )
+    );
+    addLog('Vessel emptied and rinsed clean.');
+  };
+
+  const handleRemoveItem = (itemId) => {
+    setWorkspaceItems((items) => items.filter((i) => i.uid !== itemId));
+    if (selectedId === itemId) setSelectedId(null);
+  };
+
+  // Global Demo / Simulation trigger (Top right "Demo" button)
+  const handleRunDemoSimulation = async () => {
+    setIsSimulating(true);
+    addLog('Evaluating all laboratory interactions...');
+
+    const reactiveVessel = workspaceItems.find(
+      (item) => item.type === 'vessel' && item.contents && item.contents.length >= 2
+    );
+
+    if (!reactiveVessel) {
+      addLog('Add at least 2 chemicals into a vessel to run reaction simulation.', 'warning');
+      setIsSimulating(false);
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:5000/api/simulate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chemicals: reactiveVessel.contents })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.reaction) {
+          setActiveReactionResult(data.reaction);
+          setWorkspaceItems((items) =>
+            items.map((i) =>
+              i.uid === reactiveVessel.uid
+                ? {
+                    ...i,
+                    reaction: data.reaction,
+                    liquidColor: data.reaction.after_color || data.reaction.color
+                  }
+                : i
+            )
+          );
+          addLog(`Reaction: ${data.reaction.name} (${data.reaction.equation})`, 'success');
+          setIsSimulating(false);
+          return;
+        }
+      }
+    } catch {
+      // Backend not running; client-side engine evaluates seamlessly
+    }
+
+    const localResult = evaluateMixture(reactiveVessel.contents, reactiveVessel.isHeating);
+    if (localResult) {
+      setActiveReactionResult(localResult);
+      setWorkspaceItems((items) =>
+        items.map((i) =>
+          i.uid === reactiveVessel.uid
+            ? {
+                ...i,
+                reaction: localResult,
+                liquidColor: localResult.after_color || localResult.color
+              }
+            : i
+        )
+      );
+      addLog(`Reaction Result: ${localResult.name}`, 'success');
+    } else {
+      addLog('No reaction between current chemicals.', 'info');
+    }
+
+    setIsSimulating(false);
+  };
+
+  const handleSaveExperiment = () => {
+    const data = {
+      experimentName,
+      workspaceItems,
+      date: new Date().toISOString()
+    };
+    localStorage.setItem('smartchem_saved_bench', JSON.stringify(data));
+    addLog('Experiment saved locally.', 'success');
+  };
+
+  const handleResetBench = () => {
+    setWorkspaceItems([]);
+    setSelectedId(null);
+    setActiveReactionResult(null);
+    addLog('Bench cleared.');
+  };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', width: '100vw', fontFamily: 'Segoe UI, Tahoma, sans-serif', backgroundColor: '#1a1a1a', color: '#fff' }}>
-      
-      {/* LEFT PANEL: NB Lab Style Menu */}
-      <div style={{ width: '350px', backgroundColor: '#2d3436', padding: '20px', borderRight: '2px solid #000', overflowY: 'auto' }}>
-        <h2 style={{ fontSize: '18px', color: '#00cec9', borderBottom: '1px solid #636e72', paddingBottom: '10px' }}>🧪 INVENTORY & ASSETS</h2>
-        
-        <h3 style={{ fontSize: '14px', color: '#b2bec3', marginTop: '20px' }}>1. Glassware & Tools</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', maxHeight: '250px', overflowY: 'auto', paddingRight: '5px' }}>
-          {LAB_TOOLS.map(tool => (
-            <button key={tool.id} onClick={() => addTool(tool)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px', padding: '10px', background: '#636e72', border: activeVessel?.id === tool.id ? '2px solid #00cec9' : '1px solid transparent', borderRadius: '5px', color: 'white', cursor: 'pointer', transition: '0.2s' }}>
-              <div style={{ width: '50px', height: '50px', backgroundColor: '#fff', borderRadius: '5px', padding: '2px' }}>
-                <img src={tool.image} alt={tool.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} onError={(e) => e.target.src='https://via.placeholder.com/50?text=IMG'} />
-              </div>
-              <span style={{ fontSize: '11px', fontWeight: 'bold', textAlign: 'center' }}>{tool.name}</span>
+    <div className="lab-shell dark-theme-bench">
+      {/* ── TOP HEADER (Faithful to Screenshot) ── */}
+      <header className="lab-header-modern">
+        {/* Left top controls: < (Reactions / Formulas drawer), Save, Empty, Setup */}
+        <div className="top-nav-group">
+          <button
+            className={`top-icon-back ${reactionsDrawerOpen ? 'active' : ''}`}
+            onClick={() => setReactionsDrawerOpen(!reactionsDrawerOpen)}
+            title="Chemical Reaction Formulas & Experiment Guide"
+          >
+            ‹
+          </button>
+
+          <button className="top-tool-btn" onClick={handleSaveExperiment}>
+            <span className="btn-icon">💾</span>
+            <span className="btn-label">Save</span>
+          </button>
+
+          <button className="top-tool-btn" onClick={handleResetBench}>
+            <span className="btn-icon">🗑️</span>
+            <span className="btn-label">Empty</span>
+          </button>
+
+          <button className="top-tool-btn" onClick={() => setSetupModalOpen(true)}>
+            <span className="btn-icon">⚙️</span>
+            <span className="btn-label">Setup</span>
+          </button>
+        </div>
+
+        {/* Center: Experiment Title with Pencil Icon */}
+        <div className="center-experiment-title">
+          {editingName ? (
+            <input
+              type="text"
+              autoFocus
+              value={experimentName}
+              onChange={(e) => setExperimentName(e.target.value)}
+              onBlur={() => setEditingName(false)}
+              onKeyDown={(e) => e.key === 'Enter' && setEditingName(false)}
+              className="title-edit-input"
+            />
+          ) : (
+            <button
+              className="title-display-btn"
+              onClick={() => setEditingName(true)}
+              title="Click to rename experiment"
+            >
+              <span>{experimentName}</span>
+              <span className="pencil-icon">✎</span>
             </button>
-          ))}
+          )}
         </div>
 
-        <h3 style={{ fontSize: '14px', color: '#b2bec3', marginTop: '30px' }}>2. Reagents & Chemicals</h3>
-        <select value={selectedChem} onChange={(e) => setSelectedChem(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '5px', border: 'none', backgroundColor: '#dfe6e9', color: '#2d3436', fontWeight: 'bold', fontSize: '13px' }}>
-          {CHEMICAL_DB.map(c => <option key={c.id} value={c.id}>{c.name} ({c.formula})</option>)}
-        </select>
-        <button onClick={addChemical} style={{ width: '100%', marginTop: '10px', padding: '10px', backgroundColor: '#0984e3', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>
-          + Add to Vessel
-        </button>
+        {/* Right: Demo Button with Monitor Icon */}
+        <div className="top-action-group">
+          <button
+            className="demo-screen-btn"
+            onClick={handleRunDemoSimulation}
+            disabled={isSimulating}
+          >
+            <span className="demo-icon">🖥️</span>
+            <span className="demo-text">{isSimulating ? 'Evaluating…' : 'Demo'}</span>
+          </button>
+        </div>
+      </header>
 
-        <h3 style={{ fontSize: '14px', color: '#b2bec3', marginTop: '30px' }}>📋 Current Contents</h3>
-        <div style={{ maxHeight: '150px', overflowY: 'auto', background: '#353b48', padding: '10px', borderRadius: '5px' }}>
-          {vesselContents.length === 0 && <span style={{ fontSize: '12px', color: '#7f8c8d' }}>Empty...</span>}
-          {vesselContents.map(chem => (
-            <div key={chem.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#2f3640', margin: '5px 0', padding: '5px 10px', borderRadius: '4px', fontSize: '12px' }}>
-              <span>{chem.formula} - {chem.name}</span>
-              <button onClick={() => removeChemical(chem.id)} style={{ background: '#e84118', color: '#fff', border: 'none', borderRadius: '3px', cursor: 'pointer', padding: '2px 5px' }}>X</button>
+      {/* ── MAIN WORKSPACE BODY ── */}
+      <div className="lab-workbench-body">
+        {/* Interactive Canvas */}
+        <main
+          ref={canvasRef}
+          className={`workbench-canvas ${activeTool === 'pen' ? 'pen-cursor' : ''}`}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={handleCanvasDrop}
+          onMouseMove={handleCanvasMouseMove}
+          onMouseUp={handleCanvasMouseUp}
+          onClick={() => setSelectedId(null)}
+          style={{ transform: `scale(${zoomLevel / 100})`, transformOrigin: 'top left' }}
+        >
+          <div className="procedure-guide">
+            <div className="procedure-guide-kicker">LAB PROCEDURE</div>
+            <strong>{selectedItem ? `Step for ${selectedItem.name}` : 'Step-by-step workspace'}</strong>
+            <p>{guideForSelection}</p>
+            <div className="procedure-guide-status">
+              <span className="procedure-dot" />
+              {selectedItem?.isActive || selectedItem?.measurement ? 'Action ready / completed' : 'Select and place equipment to begin'}
             </div>
-          ))}
+          </div>
+
+          {/* Empty workspace prompt */}
+          {workspaceItems.length === 0 && (
+            <div className="canvas-empty-state">
+              <div className="empty-flask-icon">⚗️</div>
+              <h3>Virtual Lab Workspace Ready</h3>
+              <p>Drag equipment, solid chemicals, or liquid solutions from the catalog onto the bench.</p>
+              <div className="quick-suggestions">
+                <button
+                  onClick={() => {
+                    placeItem(EQUIPMENT_CATALOG.vessel[7], { x: 260, y: 220 }); // Beaker 100mL
+                    placeItem(EQUIPMENT_CATALOG.liquid[1], { x: 120, y: 150 }); // HCl
+                    placeItem(EQUIPMENT_CATALOG.solid[2], { x: 420, y: 150 }); // Zn
+                  }}
+                >
+                  ⚡ Quick Load: Zinc + Acid Reaction
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Render All Placed Equipment & Chemicals */}
+          {workspaceItems.map((item) => {
+            const isSelected = selectedId === item.uid;
+            return (
+              <div
+                key={item.uid}
+                className={`canvas-bench-item ${isSelected ? 'is-selected' : ''} ${item.isPouring ? 'is-pouring' : ''}`}
+                style={{ left: `${item.x}px`, top: `${item.y}px` }}
+                onMouseDown={(e) => handleMouseDownItem(e, item)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedId(item.uid);
+                }}
+              >
+                {/* Remove button */}
+                {isSelected && (
+                  <button
+                    className="item-remove-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemoveItem(item.uid);
+                    }}
+                    title="Remove item"
+                  >
+                    ×
+                  </button>
+                )}
+
+                {/* Visual Graphic Representation */}
+                <div className="item-visual-wrap">
+                  {item.type === 'vessel' && (
+                    <GlassVesselGraphic
+                      type={item.vesselType || item.id}
+                      liquidLevel={item.liquidLevel}
+                      liquidColor={item.liquidColor}
+                      solidContent={item.solidContent}
+                      reaction={item.reaction}
+                      isHeating={item.isHeating}
+                      isStirring={item.isStirring}
+                      width={110}
+                      height={110}
+                    />
+                  )}
+
+                  {item.type === 'tool' || item.type === 'heater' || item.type === 'meter' || item.type === 'support' ? (
+                    <ToolGraphic
+                      type={item.id}
+                      isActive={item.isActive || item.isHeating}
+                      readout={
+                        item.measurement ||
+                        (item.id === 'thermometer'
+                          ? `${item.temperature?.toFixed(1) || '25.0'}°C`
+                          : item.id === 'balance'
+                          ? `${item.mass?.toFixed(2) || '0.00'} g`
+                          : item.id === 'ph_meter'
+                          ? `pH 7.0`
+                          : null)
+                      }
+                      width={110}
+                      height={110}
+                    />
+                  ) : null}
+
+                  {item.type === 'chemical' && item.state === 'solid' && (
+                    <SolidChemicalGraphic chemical={item} width={110} height={110} />
+                  )}
+
+                  {item.type === 'chemical' && item.state === 'liquid' && (
+                    <LiquidChemicalGraphic chemical={item} width={110} height={110} />
+                  )}
+                </div>
+
+                {/* Item Label & State info */}
+                <div className="item-label-strip">
+                  <span className="item-name">{item.name}</span>
+                  {item.contents && item.contents.length > 0 && (
+                    <span className="item-contents-count">
+                      {item.contents.map((c) => c.formula).join(' + ')}
+                    </span>
+                  )}
+                </div>
+
+                {/* Floating Action Menu for Selected Item */}
+                {isSelected && (
+                  <div className="item-context-toolbar" onClick={(e) => e.stopPropagation()}>
+                    {/* Pour/Scoop action for chemicals */}
+                    {item.type === 'chemical' && (
+                      <button
+                        className="ctx-btn pour"
+                        onClick={() => handlePourAction(item)}
+                        title={item.state === 'solid' ? 'Scoop with spatula into nearest vessel' : 'Pour liquid into nearest vessel'}
+                      >
+                        {item.state === 'solid' ? '🥄 Scoop' : '💧 Pour'}
+                      </button>
+                    )}
+
+                    {/* Pour action for vessels with liquid */}
+                    {item.type === 'vessel' && item.liquidLevel > 0 && (
+                      <button
+                        className="ctx-btn pour"
+                        onClick={() => handlePourAction(item)}
+                        title="Pour into nearby vessel"
+                      >
+                        ☝ Pour
+                      </button>
+                    )}
+
+                    {/* Stir action for vessels */}
+                    {item.type === 'vessel' && (
+                      <button
+                        className="ctx-btn stir"
+                        onClick={() => handleStirAction(item.uid)}
+                        title="Stir with glass rod"
+                      >
+                        ✦ Stir
+                      </button>
+                    )}
+
+                    {/* Empty vessel */}
+                    {item.type === 'vessel' && item.contents.length > 0 && (
+                      <button
+                        className="ctx-btn empty"
+                        onClick={() => handleEmptyVessel(item.uid)}
+                        title="Empty & Clean"
+                      >
+                        Rinse
+                      </button>
+                    )}
+
+                    {/* Toggle Burner flame */}
+                    {item.type === 'heater' && (
+                      <button
+                        className={`ctx-btn burner ${item.isActive ? 'active' : ''}`}
+                        onClick={() => handleToggleBurner(item.uid)}
+                      >
+                        {item.isActive ? 'Extinguish' : 'Ignite Flame'}
+                      </button>
+                    )}
+                    {(item.type === 'meter' || item.type === 'tool' || item.type === 'support') && (
+                      <button
+                        className={`ctx-btn ${item.type === 'meter' ? 'measure' : 'tool-action'}`}
+                        onClick={() => handleToolAction(item)}
+                        title={item.description || 'Use this equipment'}
+                      >
+                        {item.type === 'meter' ? '📐 Measure' : item.action === 'heat' ? '🔥 Ignite' : item.action === 'stir' ? '✦ Stir' : item.action === 'drop' ? '💧 Drop' : item.action === 'scoop' ? '🥄 Scoop' : item.action === 'connect_gas' ? '🔗 Connect' : '▶ Use'}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* ── ACTIVE REACTION OVERLAY CARD ── */}
+          {activeReactionResult && (
+            <div className="reaction-notification-card">
+              <div className="notif-header">
+                <span className="notif-icon">
+                  {activeReactionResult.status === 'violent'
+                    ? '🔥'
+                    : activeReactionResult.status === 'precipitation'
+                    ? '🌧️'
+                    : '⚗️'}
+                </span>
+                <div>
+                  <h4>{activeReactionResult.name || 'Reaction Detected'}</h4>
+                  <span className="notif-badge">{activeReactionResult.status?.toUpperCase()}</span>
+                </div>
+                <button
+                  className="notif-close"
+                  onClick={() => setActiveReactionResult(null)}
+                >
+                  ×
+                </button>
+              </div>
+              <div className="notif-body">
+                <code>{activeReactionResult.equation}</code>
+                <p>{activeReactionResult.description || activeReactionResult.message}</p>
+                {activeReactionResult.products && (
+                  <div className="product-pills">
+                    {activeReactionResult.products.map((p, idx) => (
+                      <span key={idx} className="product-pill">
+                        {p}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </main>
+
+        {/* ── BOTTOM-LEFT FLOATING CANVAS TOOLBAR (Exact Match to Screenshot) ── */}
+        <div className="bottom-left-toolbar">
+          <button
+            className="tb-btn"
+            title="Reset Canvas View"
+            onClick={() => setZoomLevel(100)}
+          >
+            ⌖
+          </button>
+
+          <div className="zoom-dropdown-wrap">
+            <button
+              className="tb-btn zoom-btn"
+              onClick={() => setZoomDropdownOpen(!zoomDropdownOpen)}
+            >
+              <span>{zoomLevel}%</span>
+              <span className="arrow-down">▾</span>
+            </button>
+            {zoomDropdownOpen && (
+              <div className="zoom-menu">
+                {[50, 75, 100, 125, 150].map((lvl) => (
+                  <button
+                    key={lvl}
+                    className={`zoom-opt ${zoomLevel === lvl ? 'active' : ''}`}
+                    onClick={() => {
+                      setZoomLevel(lvl);
+                      setZoomDropdownOpen(false);
+                    }}
+                  >
+                    {lvl}%
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <span className="tb-divider" />
+
+          <button
+            className={`tb-btn ${isLocked ? 'active' : ''}`}
+            title={isLocked ? 'Unlock Bench' : 'Lock Bench'}
+            onClick={() => setIsLocked(!isLocked)}
+          >
+            {isLocked ? '🔒' : '🔓'}
+          </button>
+
+          <button
+            className={`tb-btn ${activeTool === 'pen' ? 'active' : ''}`}
+            title="Pen Annotation Tool"
+            onClick={() => setActiveTool(activeTool === 'pen' ? 'pointer' : 'pen')}
+          >
+            ✏
+          </button>
+
+          <button
+            className={`tb-btn ${activeTool === 'select' ? 'active' : ''}`}
+            title="Lasso / Box Select"
+            onClick={() => setActiveTool(activeTool === 'select' ? 'pointer' : 'select')}
+          >
+            ⛶
+          </button>
+
+          <button
+            className="tb-btn"
+            title="Zoom In"
+            onClick={() => setZoomLevel((z) => Math.min(200, z + 25))}
+          >
+            🔍⁺
+          </button>
         </div>
 
-        <div style={{ marginTop: '20px' }}>
-          <button onClick={runSimulation} style={{ width: '100%', padding: '15px', backgroundColor: '#00b894', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px' }}>
-            ▶ SIMULATE REACTION
+        {/* ── RIGHT EQUIPMENT CATALOG PANEL (Faithful to Screenshot) ── */}
+        <aside className={`equipment-sidebar-panel ${sidebarOpen ? 'open' : 'collapsed'}`}>
+          <button
+            className="sidebar-collapse-chevron"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            title={sidebarOpen ? 'Collapse Equipment Panel' : 'Expand Equipment Panel'}
+          >
+            {sidebarOpen ? '›' : '‹'}
           </button>
-          <button onClick={clearWorkbench} style={{ width: '100%', marginTop: '10px', padding: '10px', backgroundColor: '#d63031', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
-            Clear Workbench
-          </button>
-        </div>
+
+          {sidebarOpen && (
+            <div className="sidebar-inner-container">
+              {/* Left Category Icon Strip */}
+              <div className="sidebar-category-rail">
+                {CATEGORIES.map((cat) => (
+                  <button
+                    key={cat.id}
+                    className={`rail-tab-btn ${activeCategory === cat.id ? 'active' : ''}`}
+                    onClick={() => setActiveCategory(cat.id)}
+                    title={cat.description}
+                  >
+                    <span className="rail-icon">
+                      {cat.id === 'vessel' ? '⚗' : cat.id === 'tools' ? '♨' : cat.id === 'solid' ? '◐' : cat.id === 'liquid' ? '💧' : '☁'}
+                    </span>
+                    <span className="rail-label">{cat.name}</span>
+                  </button>
+                ))}
+
+                {/* Bottom Quick Elements / Sort keys (Z, #, A) from screenshot */}
+                <div className="rail-bottom-sorts">
+                  <button
+                    className={`rail-sort-btn ${sortMode === 'Z' ? 'active' : ''}`}
+                    onClick={() => setSortMode(sortMode === 'Z' ? 'default' : 'Z')}
+                    title="Formula / Element Sort (Z)"
+                  >
+                    Z
+                  </button>
+                  <button
+                    className={`rail-sort-btn ${sortMode === 'default' ? 'active' : ''}`}
+                    onClick={() => setSortMode('default')}
+                    title="Category Group (#)"
+                  >
+                    #
+                  </button>
+                  <button
+                    className={`rail-sort-btn ${sortMode === 'A' ? 'active' : ''}`}
+                    onClick={() => setSortMode(sortMode === 'A' ? 'default' : 'A')}
+                    title="Alphabetical Sort (A-Z)"
+                  >
+                    A
+                  </button>
+                </div>
+              </div>
+
+              {/* Catalog Body: Search Bar + Equipment Grid */}
+              <div className="sidebar-content-body">
+                <div className="catalog-header-search">
+                  <div className="search-input-box">
+                    <span className="search-icon">🔍</span>
+                    <input
+                      type="text"
+                      placeholder="SearchEquipment"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                    />
+                    {search && (
+                      <button className="clear-search-btn" onClick={() => setSearch('')}>
+                        ×
+                      </button>
+                    )}
+                  </div>
+                  <button className="grid-toggle-btn" title="Grid Layout">
+                    ▦
+                  </button>
+                </div>
+
+                {/* 2-Column Equipment Cards Grid (Exact match to screenshot) */}
+                <div className="equipment-catalog-grid">
+                  {visibleEquipment.map((item) => (
+                    <article
+                      key={item.id}
+                      className="equipment-shelf-card"
+                      draggable
+                      onDragStart={(e) => handleCatalogDragStart(e, item)}
+                      onClick={() => placeItem(item)}
+                      title={`Click or drag to place ${item.name}`}
+                    >
+                      <div className="shelf-card-preview">
+                        {item.type === 'vessel' && (
+                          <GlassVesselGraphic
+                            type={item.vesselType || item.id}
+                            liquidLevel={0}
+                            width={75}
+                            height={75}
+                          />
+                        )}
+                        {item.type === 'tool' || item.type === 'heater' || item.type === 'meter' || item.type === 'support' ? (
+                          <ToolGraphic type={item.id} width={75} height={75} />
+                        ) : null}
+                        {item.type === 'chemical' && item.state === 'solid' && (
+                          <SolidChemicalGraphic chemical={item} width={75} height={75} />
+                        )}
+                        {item.type === 'chemical' && item.state === 'liquid' && (
+                          <LiquidChemicalGraphic chemical={item} width={75} height={75} />
+                        )}
+                      </div>
+
+                      <h4 className="shelf-card-name">{item.name}</h4>
+                    </article>
+                  ))}
+
+                  {visibleEquipment.length === 0 && (
+                    <div className="no-equipment-notice">
+                      <span>🔍</span>
+                      <p>No matching equipment found.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </aside>
       </div>
 
-      {/* RIGHT PANEL: The Real 3D-Like Workbench */}
-      <div style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column' }}>
-        
-        <div style={{ flex: 1, position: 'relative', backgroundImage: 'url(/assets/table_bg.jpg)', backgroundSize: 'cover', backgroundPosition: 'center', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: '12vh' }}>
-          
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.8), rgba(0,0,0,0.2))', zIndex: 0 }}></div>
-
-          {activeVessel ? (
-            <div style={{ position: 'relative', width: activeVessel.width, height: activeVessel.height, zIndex: 2 }}>
-              
-              <div style={{ position: 'absolute', bottom: '5%', left: '10%', right: '10%', height: simState.liquidHeight, backgroundColor: simState.liquidColor, transition: 'all 1.5s ease-in-out', borderRadius: '0 0 40% 40%', zIndex: 1, boxShadow: simState.liquidHeight !== '0%' ? 'inset 0px -10px 20px rgba(0,0,0,0.3)' : 'none', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', overflow: 'hidden' }}>
-                {hasBubbles && <span style={{ animation: 'bubble 0.5s infinite', fontSize: '10px' }}>⚪</span>}
-                {hasBubbles && <span style={{ animation: 'bubble 0.8s infinite', fontSize: '14px' }}>⚪</span>}
+      {/* ── CHEMICAL REACTION FORMULAS & EXPERIMENT GUIDE DRAWER ── */}
+      {reactionsDrawerOpen && (
+        <aside className="reactions-guide-drawer">
+          <div className="drawer-header">
+            <div className="drawer-title-group">
+              <span className="drawer-icon">⚗️</span>
+              <div>
+                <h3>Reaction Formulas & Visual Guide</h3>
+                <p>Click any reaction to load suitable equipment and chemicals onto the bench.</p>
               </div>
-
-              <img 
-                src={activeVessel.image} 
-                alt="vessel" 
-                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'contain', zIndex: 2, pointerEvents: 'none' }} 
-                onError={(e) => { e.target.style.display='none'; e.target.parentElement.innerHTML += '<div style="width:100%; height:100%; border:2px solid white; display:flex; align-items:center; justify-content:center;">Missing PNG</div>'; }} 
-              />
-
-              {hasFire && <img src="/assets/fire.gif" alt="fire" style={{ position: 'absolute', top: '-40%', left: '20%', width: '60%', zIndex: 3, mixBlendMode: 'screen' }} />}
-              {hasSmoke && <img src="/assets/smoke.gif" alt="smoke" style={{ position: 'absolute', top: '-150%', left: '-50%', width: '200%', opacity: 0.7, zIndex: 4, pointerEvents: 'none' }} />}
-              
             </div>
-          ) : (
-            <div style={{ zIndex: 1, color: 'rgba(255,255,255,0.4)', fontSize: '28px', letterSpacing: '3px', fontWeight: 'bold' }}>
-              EMPTY WORKBENCH
-            </div>
-          )}
-        </div>
+            <button
+              className="drawer-close-btn"
+              onClick={() => setReactionsDrawerOpen(false)}
+            >
+              ×
+            </button>
+          </div>
 
-        {/* Bottom Console Panel */}
-        <div style={{ height: '120px', backgroundColor: '#222f3e', borderTop: '2px solid #576574', padding: '15px', display: 'flex', flexDirection: 'column', justifyContent: 'center', zIndex: 10 }}>
-          {simState.equation && (
-            <div style={{ color: '#ff9f43', fontSize: '20px', fontWeight: 'bold', marginBottom: '5px', letterSpacing: '1px' }}>
-              {simState.equation}
+          <div className="drawer-body">
+            {SHOWCASE_CATEGORIES.map((cat) => (
+              <div key={cat.id} className="drawer-cat-block">
+                <div className="drawer-cat-title">
+                  <span>{cat.icon}</span>
+                  <h4>{cat.name}</h4>
+                </div>
+                <div className="drawer-reactions-list">
+                  {cat.examples.map((ex) => (
+                    <div key={ex.id} className="drawer-reaction-row">
+                      <div className="rxn-info">
+                        <strong>{ex.name}</strong>
+                        <code>{ex.equation}</code>
+                        <p>{ex.observation}</p>
+                      </div>
+                      <button
+                        className="rxn-load-btn"
+                        onClick={() => {
+                          const allChems = [
+                            ...EQUIPMENT_CATALOG.solid,
+                            ...EQUIPMENT_CATALOG.liquid
+                          ];
+                          const rA = allChems.find((c) => c.id === ex.reactants[0]);
+                          const rB = allChems.find((c) => c.id === ex.reactants[1]);
+                          loadExperimentPreset({
+                            name: ex.name,
+                            chemicals: [rA, rB].filter(Boolean),
+                            vesselId: ex.vessel || 'beaker_250',
+                            isHeating: ex.id.includes('thermal') || ex.id.includes('combustion')
+                          });
+                        }}
+                      >
+                        ⚡ Load on Bench
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </aside>
+      )}
+
+      {/* ── SETUP & PREFERENCES MODAL ── */}
+      {setupModalOpen && (
+        <div className="modal-backdrop" onClick={() => setSetupModalOpen(false)}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Lab Bench Setup & Controls</h3>
+              <button onClick={() => setSetupModalOpen(false)}>×</button>
             </div>
-          )}
-          <div style={{ color: '#1dd1a1', fontFamily: 'monospace', fontSize: '16px' }}>
-            [System Log] {simState.log}
+            <div className="modal-body">
+              <div className="setup-option-row">
+                <label>Ambient Temperature</label>
+                <span>25.0 °C (Standard Conditions)</span>
+              </div>
+              <div className="setup-option-row">
+                <label>Atmospheric Pressure</label>
+                <span>1.0 atm (101.3 kPa)</span>
+              </div>
+              <div className="setup-option-row">
+                <label>Reaction Physics Engine</label>
+                <span>Full Kinetic & Thermodynamic Simulation</span>
+              </div>
+              <div className="setup-option-row">
+                <label>Backend Calculation Service</label>
+                <span className="status-online">● Connected (Port 5000)</span>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-
-      <style>
-        {`
-          @keyframes bubble { 0% { transform: translateY(0); opacity: 0.8; } 100% { transform: translateY(-100px); opacity: 0; } }
-          /* Scrollbar styling for inventory */
-          ::-webkit-scrollbar { width: 8px; }
-          ::-webkit-scrollbar-track { background: #2d3436; }
-          ::-webkit-scrollbar-thumb { background: #636e72; border-radius: 4px; }
-          ::-webkit-scrollbar-thumb:hover { background: #00cec9; }
-        `}
-      </style>
+      )}
     </div>
   );
 }
-
-export default ExperimentLab;
