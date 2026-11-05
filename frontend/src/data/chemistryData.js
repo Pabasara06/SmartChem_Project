@@ -249,6 +249,33 @@ export const EQUIPMENT_CATALOG = {
       action: 'connect_gas',
       suitableFor: ['vessel'],
       description: 'Directs evolved gases (CO2, H2, O2) from generator to gas jar.'
+    },
+    {
+      id: 'burette',
+      name: 'Digital Burette',
+      detail: '50 mL graduated titration tube',
+      type: 'tool',
+      action: 'titrate',
+      suitableFor: ['liquid', 'vessel', 'stand'],
+      description: 'Delivers measured titrant volume for accurate neutralization and endpoint work.'
+    },
+    {
+      id: 'funnel',
+      name: 'Powder & Liquid Funnel',
+      detail: 'Wide-mouth borosilicate funnel',
+      type: 'tool',
+      action: 'filter',
+      suitableFor: ['liquid', 'solid', 'vessel'],
+      description: 'Guides powders and liquids into narrow vessels without spills.'
+    },
+    {
+      id: 'wash_bottle',
+      name: 'Distilled Water Wash Bottle',
+      detail: '250 mL squeeze bottle',
+      type: 'tool',
+      action: 'rinse',
+      suitableFor: ['vessel'],
+      description: 'Rinses glassware and adds small controlled portions of distilled water.'
     }
   ],
   solid: [
@@ -420,6 +447,45 @@ export const EQUIPMENT_CATALOG = {
       mass: 1.00,
       suitableEquipment: ['spatula', 'balance', 'beaker'],
       description: 'Baking soda. Rapidly neutralizes acids with bubbling carbon dioxide release.'
+    },
+    {
+      id: 'aluminium',
+      name: 'Aluminium foil pieces',
+      detail: 'Al · Lightweight reactive metal',
+      formula: 'Al',
+      category: 'metal',
+      type: 'chemical',
+      state: 'solid',
+      color: '#c7d0d6',
+      mass: 0.65,
+      suitableEquipment: ['forceps', 'spatula', 'watch_glass'],
+      description: 'Light metal sample for acid reactions and oxidation demonstrations.'
+    },
+    {
+      id: 'sodium_chloride',
+      name: 'Sodium chloride crystals',
+      detail: 'NaCl · White ionic crystals',
+      formula: 'NaCl',
+      category: 'salt_solid',
+      type: 'chemical',
+      state: 'solid',
+      color: '#f5f7fa',
+      mass: 1.00,
+      suitableEquipment: ['spatula', 'balance', 'watch_glass'],
+      description: 'Stable soluble salt used for dissolution, conductivity, and crystallization studies.'
+    },
+    {
+      id: 'copper_carbonate',
+      name: 'Copper carbonate powder',
+      detail: 'CuCO₃ · Green powder',
+      formula: 'CuCO₃',
+      category: 'carbonate',
+      type: 'chemical',
+      state: 'solid',
+      color: '#4d9877',
+      mass: 0.80,
+      suitableEquipment: ['spatula', 'crucible', 'testtube'],
+      description: 'Green carbonate that decomposes on heating and reacts with dilute acids.'
     }
   ],
   liquid: [
@@ -617,6 +683,45 @@ export const EQUIPMENT_CATALOG = {
       ph: 7.0,
       suitableEquipment: ['beaker', 'flask', 'burner'],
       description: 'Flammable organic solvent. Burns cleanly with a pale blue-orange flame.'
+    },
+    {
+      id: 'acetic_acid',
+      name: 'Ethanoic acid solution',
+      detail: 'CH₃COOH · Weak acid · pH 2.4',
+      formula: 'CH₃COOH',
+      category: 'weak_acid',
+      type: 'chemical',
+      state: 'liquid',
+      color: '#e8f4f4',
+      ph: 2.4,
+      suitableEquipment: ['dropper', 'burette', 'beaker'],
+      description: 'Weak acid for comparing neutralization, indicators, and buffer behavior.'
+    },
+    {
+      id: 'cuso4_aq',
+      name: 'Copper(II) sulfate solution',
+      detail: 'CuSO₄(aq) · Blue solution · 0.5 M',
+      formula: 'CuSO₄(aq)',
+      category: 'copper_salt',
+      type: 'chemical',
+      state: 'liquid',
+      color: '#2586dc',
+      ph: 4.0,
+      suitableEquipment: ['dropper', 'beaker', 'testtube'],
+      description: 'Bright blue ionic solution used for precipitation and metal displacement reactions.'
+    },
+    {
+      id: 'limewater',
+      name: 'Limewater',
+      detail: 'Ca(OH)₂(aq) · Clear test solution',
+      formula: 'Ca(OH)₂',
+      category: 'limewater',
+      type: 'chemical',
+      state: 'liquid',
+      color: '#eaf7f4',
+      ph: 12.4,
+      suitableEquipment: ['dropper', 'testtube', 'gas_jar'],
+      description: 'Clear calcium hydroxide solution that turns milky when exposed to carbon dioxide.'
     }
   ],
   gas: [
@@ -920,22 +1025,22 @@ export const REACTION_RULES = [
     mechanism: 'Bromothymol blue and phenolphthalein indicator components are fully deprotonated.'
   },
 
-  // 15. Thermal Decomposition: Copper(II) oxide / Carbonate on Heating
+  // 15. Thermal Decomposition: Calcium Carbonate on Heating
   {
     id: 'thermal_decomposition_cu',
-    name: 'Thermal Decomposition of Copper Carbonate',
+    name: 'Thermal Decomposition of Calcium Carbonate',
     category: 'decomposition',
-    reactants: [['carbonate', 'calcium_carbonate'], ['heater', 'burner']],
-    equation: 'CuCO₃(s) (green) + heat → CuO(s) (black) + CO₂↑',
+    reactants: [['calcium_carbonate'], ['heater', 'burner']],
+    equation: 'CaCO₃(s) + heat → CaO(s) + CO₂↑',
     status: 'decomposition',
     title: 'Thermal Color Transition & Gas Release',
     color: '#2a2a2a',
     after_color: 'rgba(40, 40, 40, 0.95)',
     effects: ['heat_wave', 'smoke', 'gas'],
-    products: ['CuO black solid powder', 'CO₂ gas ↑'],
+    products: ['CaO white solid', 'CO₂ gas ↑'],
     temperatureChange: 95.0,
-    description: 'Green copper carbonate decomposes upon heating into fine velvety black copper(II) oxide and evolving carbon dioxide gas.',
-    mechanism: 'High thermal energy breaks weak metal-carbonate bonds, yielding stable transition metal oxide lattice.'
+    description: 'Calcium carbonate decomposes at high temperature, producing calcium oxide and releasing carbon dioxide gas.',
+    mechanism: 'Thermal energy breaks the carbonate lattice and releases carbon dioxide.'
   },
 
   // 16. Combustion: Ethanol + Burner
@@ -990,6 +1095,118 @@ export const REACTION_RULES = [
     temperatureChange: -0.8,
     description: 'Dark purple crystals dissolve instantly with vibrant swirling plumes of rich royal magenta permanganate ions.',
     mechanism: 'MnO₄⁻ tetraoxoanions diffuse through solvent; strong ligand-to-metal charge transfer produces exceptionally high molar absorptivity.'
+  },
+
+  // 19. Carbonate and metal extension reactions
+  {
+    id: 'copper_carbonate_acid',
+    name: 'Copper Carbonate Acid Reaction',
+    category: 'gas_evolution',
+    reactants: [['carbonate', 'copper_carbonate'], ['strong_acid', 'hcl', 'h2so4']],
+    equation: 'CuCO₃(s) + 2HCl(aq) → CuCl₂(aq) + H₂O(l) + CO₂(g)↑',
+    status: 'gas_evolution',
+    title: 'Green Solid Dissolves with CO₂ Effervescence',
+    color: '#67b9a2',
+    after_color: 'rgba(57, 145, 206, 0.72)',
+    effects: ['bubbles', 'gas', 'rapid_fizzing'],
+    products: ['CuCl₂ blue-green solution', 'CO₂ gas ↑', 'H₂O'],
+    gasProduced: 'CO₂',
+    temperatureChange: 3,
+    description: 'The green carbonate dissolves while a blue-green solution forms and carbon dioxide bubbles rise continuously.'
+  },
+  {
+    id: 'aluminium_acid',
+    name: 'Aluminium with Hydrochloric Acid',
+    category: 'gas_evolution',
+    reactants: [['metal', 'aluminium'], ['strong_acid', 'hcl', 'h2so4']],
+    equation: '2Al(s) + 6HCl(aq) → 2AlCl₃(aq) + 3H₂(g)↑',
+    status: 'gas_evolution',
+    title: 'Aluminium Dissolution and Hydrogen Release',
+    color: '#d9eef4',
+    after_color: 'rgba(220, 244, 250, 0.72)',
+    effects: ['bubbles', 'gas', 'heat_wave'],
+    products: ['AlCl₃ solution', 'H₂ gas ↑'],
+    gasProduced: 'H₂',
+    temperatureChange: 5,
+    description: 'Aluminium gradually dissolves after its oxide layer is breached, releasing visible hydrogen bubbles.'
+  },
+  {
+    id: 'salt_dissolution',
+    name: 'Sodium Chloride Dissolution',
+    category: 'dissolution',
+    reactants: [['salt_solid', 'sodium_chloride'], ['water', 'water']],
+    equation: 'NaCl(s) + H₂O(l) → Na⁺(aq) + Cl⁻(aq)',
+    status: 'dissolution',
+    title: 'Clear Ionic Solution',
+    color: '#bfe8f3',
+    after_color: 'rgba(191, 232, 243, 0.62)',
+    effects: ['dissolving_crystals'],
+    products: ['Na⁺ and Cl⁻ aqueous ions'],
+    temperatureChange: -0.3,
+    description: 'White sodium chloride crystals dissolve to form a clear, colorless ionic solution.'
+  },
+  {
+    id: 'carbon_dioxide_limewater',
+    name: 'Carbon Dioxide Limewater Test',
+    category: 'precipitation',
+    reactants: [['gas_co2', 'carbon_dioxide_gas'], ['limewater', 'limewater']],
+    equation: 'CO₂(g) + Ca(OH)₂(aq) → CaCO₃↓ (milky) + H₂O(l)',
+    status: 'precipitation',
+    title: 'Limewater Turns Milky',
+    color: '#edf7f4',
+    after_color: 'rgba(230, 242, 238, 0.82)',
+    precipitate_color: '#f5f7f2',
+    effects: ['precipitate', 'gas'],
+    products: ['CaCO₃ white precipitate', 'H₂O'],
+    temperatureChange: 0.5,
+    description: 'Carbon dioxide bubbles through clear limewater and produce a characteristic milky suspension of calcium carbonate.'
+  },
+  {
+    id: 'acetic_bicarbonate',
+    name: 'Ethanoic Acid and Sodium Bicarbonate',
+    category: 'gas_evolution',
+    reactants: [['weak_acid', 'acetic_acid'], ['carbonate', 'sodium_bicarbonate']],
+    equation: 'CH₃COOH(aq) + NaHCO₃(s) → CH₃COONa(aq) + H₂O(l) + CO₂(g)↑',
+    status: 'gas_evolution',
+    title: 'Weak Acid Carbon Dioxide Effervescence',
+    color: '#eaf7f4',
+    after_color: 'rgba(222, 245, 239, 0.72)',
+    effects: ['bubbles', 'gas', 'rapid_fizzing'],
+    products: ['Sodium ethanoate solution', 'CO₂ gas ↑', 'H₂O'],
+    gasProduced: 'CO₂',
+    temperatureChange: 2.0,
+    description: 'The weak acid reacts steadily with sodium bicarbonate, producing a foamy stream of carbon dioxide bubbles.'
+  },
+  {
+    id: 'iron_copper_displacement',
+    name: 'Iron Displacement of Copper',
+    category: 'displacement',
+    reactants: [['metal', 'iron_filings'], ['copper_salt', 'cuso4_aq']],
+    equation: 'Fe(s) + CuSO₄(aq) → FeSO₄(aq) + Cu(s)',
+    status: 'color_change',
+    title: 'Blue Solution Fades as Copper Deposits',
+    color: '#b7d7c5',
+    after_color: 'rgba(154, 204, 180, 0.74)',
+    effects: ['deep_color_shift', 'settling_crystals'],
+    products: ['Pale green FeSO₄ solution', 'Reddish copper metal deposit'],
+    temperatureChange: 2.5,
+    description: 'Iron reduces copper ions to reddish copper metal while the original blue solution changes toward pale green.'
+  },
+  {
+    id: 'copper_carbonate_thermal',
+    name: 'Thermal Decomposition of Copper Carbonate',
+    category: 'decomposition',
+    reactants: [['carbonate', 'copper_carbonate'], ['heater', 'burner']],
+    equation: 'CuCO₃(s) → CuO(s) (black) + CO₂(g)↑',
+    status: 'decomposition',
+    title: 'Green Powder Becomes Black on Heating',
+    color: '#292929',
+    after_color: 'rgba(42, 42, 42, 0.94)',
+    effects: ['heat_wave', 'smoke', 'gas'],
+    products: ['CuO black solid powder', 'CO₂ gas ↑'],
+    gasProduced: 'CO₂',
+    temperatureChange: 95.0,
+    description: 'Green copper carbonate changes to black copper(II) oxide while carbon dioxide is released.'
   }
 ];
 
@@ -1006,9 +1223,13 @@ export function evaluateMixture(items, isHeated = false) {
     if (alcohol) {
       return REACTION_RULES.find((r) => r.id === 'ethanol_combustion');
     }
-    const decomposer = items.find((i) => i.id === 'calcium_carbonate' || i.id === 'cuo');
+    const decomposer = items.find((i) => i.id === 'calcium_carbonate' || i.id === 'copper_carbonate' || i.id === 'cuo');
     if (decomposer) {
-      return REACTION_RULES.find((r) => r.id === 'thermal_decomposition_cu');
+      return REACTION_RULES.find((r) =>
+        decomposer.id === 'copper_carbonate'
+          ? r.id === 'copper_carbonate_thermal'
+          : r.id === 'thermal_decomposition_cu'
+      );
     }
   }
 

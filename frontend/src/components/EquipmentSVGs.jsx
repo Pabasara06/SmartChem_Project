@@ -21,6 +21,9 @@ export function GlassVesselGraphic({
   const isViolent = reaction?.status === 'violent';
   const hasBubbles = reaction?.effects?.includes('bubbles') || reaction?.effects?.includes('rapid_fizzing') || isHeating;
   const hasPrecipitate = reaction?.effects?.includes('precipitate') || reaction?.precipitate_color;
+  const hasGas = reaction?.effects?.includes('gas') || reaction?.gasProduced;
+  const hasSmoke = reaction?.effects?.includes('smoke');
+  const hasFire = reaction?.effects?.includes('fire') || reaction?.effects?.includes('sparks');
 
   return (
     <div
@@ -429,6 +432,42 @@ export function GlassVesselGraphic({
           </g>
         )}
 
+        {hasGas && (
+          <g className="gas-release-visual">
+            <path d="M 48 30 C 42 21 55 18 51 9" fill="none" stroke="#d9f6ff" strokeWidth="2" strokeLinecap="round" strokeDasharray="3 3">
+              <animate attributeName="stroke-dashoffset" values="0;-18" dur="0.8s" repeatCount="indefinite" />
+            </path>
+            <path d="M 67 31 C 74 22 63 17 70 7" fill="none" stroke="#d9f6ff" strokeWidth="2" strokeLinecap="round" strokeDasharray="3 3">
+              <animate attributeName="stroke-dashoffset" values="0;-18" dur="0.9s" repeatCount="indefinite" />
+            </path>
+            <text x="60" y="6" textAnchor="middle" fill="#d9f6ff" fontSize="5" fontFamily="monospace">
+              {reaction.gasProduced || 'GAS'}
+            </text>
+          </g>
+        )}
+
+        {hasSmoke && (
+          <g className="smoke-visual" opacity="0.7">
+            <circle cx="51" cy="21" r="5" fill="#c6d0d8">
+              <animate attributeName="cy" values="25;8" dur="1.5s" repeatCount="indefinite" />
+              <animate attributeName="opacity" values="0.65;0" dur="1.5s" repeatCount="indefinite" />
+            </circle>
+            <circle cx="68" cy="19" r="4" fill="#aebbc5">
+              <animate attributeName="cy" values="24;6" dur="1.3s" repeatCount="indefinite" begin="0.3s" />
+              <animate attributeName="opacity" values="0.6;0" dur="1.3s" repeatCount="indefinite" begin="0.3s" />
+            </circle>
+          </g>
+        )}
+
+        {hasFire && (
+          <g className="reaction-fire-visual">
+            <path d="M 52 35 C 43 27 57 23 57 14 C 66 23 72 29 65 37 C 63 42 54 42 52 35 Z" fill="#ff8a24">
+              <animateTransform attributeName="transform" type="scale" values="1 1;1.08 1.12;1 1" dur="0.45s" repeatCount="indefinite" additive="sum" />
+            </path>
+            <path d="M 57 34 C 53 29 60 26 60 21 C 65 27 66 31 63 35 C 61 38 58 37 57 34 Z" fill="#ffe45c" />
+          </g>
+        )}
+
         {/* --- DYNAMIC VIOLENT EXPLOSION / FLASH FOR SODIUM --- */}
         {isViolent && (
           <g className="violent-flash">
@@ -639,6 +678,51 @@ export function ToolGraphic({
         )}
       </svg>
     </div>
+  );
+}
+
+export function HumanHandGraphic({ pose = 'hold', width = 72, height = 72 }) {
+  const poseTransform = {
+    pour: 'rotate(-28 48 48)',
+    scoop: 'rotate(-22 48 48)',
+    stir: 'rotate(18 48 48)',
+    heat: 'rotate(-12 48 48)',
+    measure: 'rotate(-8 48 48)',
+    hold: 'rotate(0 48 48)'
+  }[pose] || 'rotate(0 48 48)';
+
+  return (
+    <svg
+      className={`human-hand human-hand-${pose}`}
+      viewBox="0 0 96 96"
+      width={width}
+      height={height}
+      aria-label={`Hand performing ${pose} action`}
+      style={{ overflow: 'visible' }}
+    >
+      <g transform={poseTransform} filter="url(#handShadow)">
+        <defs>
+          <filter id="handShadow" x="-30%" y="-30%" width="160%" height="160%">
+            <feDropShadow dx="0" dy="3" stdDeviation="2.5" floodColor="#06111d" floodOpacity="0.5" />
+          </filter>
+          <linearGradient id="skinGradient" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#f8c7a6" />
+            <stop offset="55%" stopColor="#e9a47f" />
+            <stop offset="100%" stopColor="#bd735d" />
+          </linearGradient>
+        </defs>
+        <path
+          d="M37 78 C27 73 23 64 26 55 L31 38 C32 34 37 34 39 38 L39 22 C39 18 45 18 46 22 L47 39 L48 16 C48 12 54 12 55 16 L56 40 L58 20 C58 16 64 16 65 20 L64 44 L68 29 C69 25 75 26 75 30 L72 53 C70 68 62 78 52 82 Z"
+          fill="url(#skinGradient)"
+          stroke="#9d5d51"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+        />
+        <path d="M40 43 C46 48 52 51 61 51" fill="none" stroke="#b86e5e" strokeWidth="1.4" strokeLinecap="round" opacity="0.7" />
+        <path d="M34 59 C42 64 50 66 58 64" fill="none" stroke="#b86e5e" strokeWidth="1.2" strokeLinecap="round" opacity="0.55" />
+        <ellipse cx="46" cy="24" rx="2" ry="5" fill="#ffe0c5" opacity="0.55" />
+      </g>
+    </svg>
   );
 }
 

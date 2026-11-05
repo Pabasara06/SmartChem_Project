@@ -1944,3 +1944,511 @@ body {
     width: calc(100% - 24px);
   }
 }
+
+/* Shared alignment and component rhythm */
+:root {
+  --page-gutter: clamp(18px, 4vw, 64px);
+  --control-height: 42px;
+  --radius-panel: 18px;
+  --radius-control: 10px;
+}
+
+.showcase-header,
+.showcase-hero,
+.showcase-catalog-section {
+  width: min(1320px, calc(100% - (var(--page-gutter) * 2)));
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.showcase-header {
+  width: 100%;
+  padding-left: var(--page-gutter);
+  padding-right: var(--page-gutter);
+}
+
+.showcase-hero {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.showcase-catalog-section {
+  margin-top: 40px;
+}
+
+.interactive-sandbox-card,
+.category-section {
+  overflow: hidden;
+}
+
+.sandbox-selectors,
+.sandbox-output-grid,
+.catalog-toolbar,
+.category-header {
+  align-items: center;
+}
+
+.selector-column,
+.reaction-scientific-details {
+  min-width: 0;
+}
+
+.chemical-dropdown,
+.catalog-search input,
+.search-input-box input {
+  min-height: var(--control-height);
+}
+
+.catalog-toolbar {
+  gap: 16px;
+  padding: 14px 0;
+}
+
+.filter-chips,
+.showcase-header-nav,
+.sandbox-actions,
+.card-footer {
+  flex-wrap: wrap;
+}
+
+.filter-chip,
+.btn-card-preview,
+.btn-card-bench,
+.btn-launch-bench-primary {
+  min-height: 38px;
+  border-radius: var(--radius-control);
+}
+
+.category-section {
+  padding: clamp(18px, 2.5vw, 28px);
+}
+
+.category-header {
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.reactions-grid {
+  align-items: stretch;
+}
+
+.reaction-card-detailed {
+  min-height: 218px;
+  display: flex;
+  flex-direction: column;
+}
+
+.reaction-card-detailed .card-footer {
+  margin-top: auto;
+}
+
+.lab-header-modern {
+  display: grid;
+  grid-template-columns: minmax(230px, 1fr) auto minmax(230px, 1fr);
+  align-items: center;
+}
+
+.top-action-group {
+  justify-self: end;
+}
+
+.lab-workbench-body {
+  min-height: 0;
+}
+
+.workbench-canvas {
+  min-width: 0;
+}
+
+.equipment-sidebar-panel.open {
+  flex: 0 0 325px;
+}
+
+.sidebar-content-body {
+  min-width: 0;
+}
+
+.equipment-shelf-card {
+  min-width: 0;
+  min-height: 172px;
+  padding: 12px;
+}
+
+.shelf-card-preview {
+  min-height: 104px;
+  display: grid;
+  place-items: center;
+}
+
+.shelf-card-name,
+.shelf-card-detail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 980px) {
+  .lab-header-modern {
+    grid-template-columns: 1fr auto;
+  }
+
+  .center-experiment-title {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    justify-self: center;
+  }
+
+  .top-nav-group {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .top-action-group {
+    grid-column: 2;
+    grid-row: 1;
+  }
+}
+
+/* The library is a left-side instrument cabinet; the bench remains central. */
+.equipment-sidebar-panel {
+  order: -1;
+  border-left: none;
+  border-right: 1px solid rgba(143, 193, 231, 0.16);
+}
+
+.equipment-sidebar-panel.collapsed {
+  border-right: none;
+}
+
+.sidebar-collapse-chevron {
+  left: auto;
+  right: -14px;
+  border-right: 1px solid var(--border-dark);
+  border-left: none;
+  border-radius: 0 6px 6px 0;
+}
+
+.sidebar-category-rail {
+  order: 0;
+  border-right: none;
+  border-left: 1px solid rgba(143, 193, 231, 0.08);
+}
+
+.sidebar-content-body {
+  order: -1;
+}
+
+.catalog-panel-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 48px;
+  padding: 2px 2px 12px;
+  border-bottom: 1px solid rgba(143, 193, 231, 0.12);
+  margin-bottom: 12px;
+}
+
+.catalog-panel-heading strong {
+  display: block;
+  margin-top: 3px;
+  color: #f1f7ff;
+  font: 600 15px var(--font-display);
+}
+
+.catalog-panel-kicker {
+  color: #62e5db;
+  font: 700 9px var(--font-mono);
+  letter-spacing: 1.1px;
+}
+
+.catalog-panel-count {
+  color: #7f9ab4;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .equipment-sidebar-panel.open {
+    flex-basis: 280px;
+  }
+}
+
+/* Secondary UI polish: clearer hierarchy and calmer laboratory controls. */
+.lab-header-modern {
+  background:
+    linear-gradient(90deg, rgba(17, 39, 65, 0.96), rgba(10, 23, 41, 0.96));
+  box-shadow: inset 0 -1px 0 rgba(98, 229, 219, 0.08), 0 10px 24px rgba(0, 0, 0, 0.16);
+}
+
+.top-nav-group,
+.top-action-group {
+  gap: 6px;
+}
+
+.top-icon-back {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(143, 193, 231, 0.16);
+  border-radius: 9px;
+  color: #a9c5df;
+  font-size: 22px;
+}
+
+.top-icon-back:hover,
+.top-icon-back.active {
+  color: #fff;
+  background: rgba(86, 181, 255, 0.16);
+  border-color: rgba(86, 181, 255, 0.46);
+}
+
+.top-tool-btn {
+  min-width: 56px;
+  padding: 7px 8px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+}
+
+.top-tool-btn:hover {
+  border-color: rgba(98, 229, 219, 0.25);
+}
+
+.center-experiment-title {
+  min-width: 190px;
+  background: rgba(9, 22, 38, 0.56);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.demo-screen-btn {
+  min-width: 70px;
+  padding: 7px 10px;
+  border: 1px solid rgba(98, 229, 219, 0.3);
+  border-radius: 10px;
+  color: #a8eee9;
+  background: rgba(31, 123, 130, 0.12);
+}
+
+.demo-screen-btn:hover {
+  background: rgba(31, 173, 166, 0.2);
+}
+
+.workbench-canvas {
+  background-color: #152840;
+  background-image:
+    linear-gradient(rgba(138, 192, 221, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(138, 192, 221, 0.07) 1px, transparent 1px),
+    radial-gradient(circle at 50% 45%, rgba(81, 164, 196, 0.1), transparent 34rem);
+  background-size: 36px 36px, 36px 36px, auto;
+}
+
+.canvas-empty-state {
+  padding: 32px;
+  border: 1px dashed rgba(139, 204, 219, 0.26);
+  border-radius: 22px;
+  background: rgba(9, 23, 40, 0.38);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.14);
+}
+
+.empty-flask-icon {
+  filter: drop-shadow(0 8px 18px rgba(98, 229, 219, 0.22));
+}
+
+.sidebar-category-rail {
+  width: 76px;
+  padding: 14px 5px;
+  background: linear-gradient(180deg, #10243b, #0d1b2e);
+}
+
+.rail-tab-btn {
+  margin-bottom: 5px;
+  padding: 8px 3px;
+  border-radius: 10px;
+}
+
+.rail-tab-btn:hover {
+  background: rgba(86, 181, 255, 0.1);
+}
+
+.rail-tab-btn.active {
+  background: rgba(86, 181, 255, 0.12);
+}
+
+.rail-tab-btn .rail-icon {
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(143, 193, 231, 0.1);
+}
+
+.rail-tab-btn.active .rail-icon {
+  border-color: rgba(98, 229, 219, 0.55);
+  background: linear-gradient(145deg, #4db9ef, #4e74e9);
+}
+
+.sidebar-content-body {
+  padding: 16px 13px;
+  background: linear-gradient(180deg, #142945, #102238);
+}
+
+.catalog-header-search {
+  padding: 4px;
+  border-radius: 11px;
+  background: rgba(7, 17, 31, 0.24);
+}
+
+.search-input-box {
+  min-height: 38px;
+  border-radius: 9px;
+}
+
+.equipment-catalog-grid {
+  gap: 12px;
+}
+
+.equipment-shelf-card {
+  min-height: 184px;
+  background: linear-gradient(160deg, rgba(38, 70, 105, 0.9), rgba(22, 45, 70, 0.96));
+  border-color: rgba(143, 193, 231, 0.2);
+}
+
+.equipment-shelf-card:hover {
+  background: linear-gradient(160deg, rgba(47, 91, 131, 0.98), rgba(25, 57, 86, 0.98));
+}
+
+.shelf-card-preview {
+  width: 94px;
+  height: 94px;
+  border-radius: 12px;
+  background: radial-gradient(circle at 50% 35%, rgba(96, 155, 194, 0.28), rgba(8, 24, 42, 0.64) 75%);
+  border-color: rgba(143, 210, 230, 0.22);
+}
+
+.shelf-card-name {
+  color: #e7f2fc;
+  font-weight: 600;
+}
+
+.item-label-strip {
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.18);
+}
+
+.item-visual-wrap {
+  position: relative;
+}
+
+.human-hand {
+  position: absolute;
+  right: -34px;
+  bottom: -18px;
+  z-index: 18;
+  transform-origin: 50% 70%;
+  animation: handApproach 0.28s ease-out both, handWork 0.72s ease-in-out 0.28s infinite alternate;
+  pointer-events: none;
+}
+
+.human-hand-pour,
+.human-hand-scoop {
+  right: -42px;
+  bottom: -10px;
+}
+
+.human-hand-stir {
+  right: -30px;
+  bottom: -24px;
+}
+
+.human-hand-heat {
+  right: -38px;
+  bottom: -16px;
+}
+
+@keyframes handApproach {
+  from {
+    opacity: 0;
+    transform: translate(18px, 12px) scale(0.82);
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+@keyframes handWork {
+  from {
+    filter: drop-shadow(0 4px 5px rgba(0, 0, 0, 0.25));
+  }
+  to {
+    filter: drop-shadow(0 7px 8px rgba(98, 229, 219, 0.22));
+  }
+}
+
+.item-label-strip:has(.item-reaction-state) {
+  border-color: rgba(98, 229, 219, 0.34);
+}
+
+.item-reaction-state {
+  display: block;
+  margin-top: 3px;
+  color: #a8eee9;
+  font: 700 8px var(--font-mono);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.reaction-visual-badge {
+  position: absolute;
+  top: -12px;
+  left: calc(100% + 8px);
+  width: 148px;
+  padding: 7px 8px;
+  border: 1px solid rgba(98, 229, 219, 0.35);
+  border-radius: 9px;
+  background: rgba(8, 20, 35, 0.9);
+  color: #dcefff;
+  font-size: 9px;
+  line-height: 1.25;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+}
+
+.reaction-color-swatch {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 50%;
+  vertical-align: -1px;
+}
+
+.reaction-visual-badge small {
+  display: block;
+  margin-top: 3px;
+  color: #91b1c9;
+  font-size: 8px;
+}
+
+.gas-release-visual,
+.reaction-fire-visual,
+.smoke-visual {
+  pointer-events: none;
+}
+
+.procedure-guide {
+  border-left: 3px solid #62e5db;
+}
+
+.bottom-left-toolbar {
+  padding: 6px 8px;
+  border-radius: 13px;
+}
+
+.tb-btn {
+  width: 31px;
+  height: 31px;
+}
+
+.reaction-notification-card {
+  border-left: 3px solid #62e5db;
+}

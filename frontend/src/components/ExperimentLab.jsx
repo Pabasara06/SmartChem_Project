@@ -10,7 +10,8 @@ import {
   GlassVesselGraphic,
   ToolGraphic,
   SolidChemicalGraphic,
-  LiquidChemicalGraphic
+  LiquidChemicalGraphic,
+  HumanHandGraphic
 } from './EquipmentSVGs';
 
 const uid = () => `item-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -31,6 +32,7 @@ export default function ExperimentLab({ initialSetup }) {
   const [isLocked, setIsLocked] = useState(false);
   const [activeTool, setActiveTool] = useState('pointer'); // 'pointer' | 'pen' | 'select'
   const [sortMode, setSortMode] = useState('default'); // 'default' | 'Z' | 'hash' | 'A'
+  const [handAction, setHandAction] = useState(null);
 
   // Reaction Drawer & Modal States
   const [reactionsDrawerOpen, setReactionsDrawerOpen] = useState(false);
@@ -151,6 +153,13 @@ export default function ExperimentLab({ initialSetup }) {
       { id: uid(), time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }), message, type },
       ...prev.slice(0, 15)
     ]);
+  };
+
+  const showHandAction = (pose, targetUid, duration = 900) => {
+    setHandAction({ pose, targetUid });
+    window.setTimeout(() => {
+      setHandAction((current) => current?.targetUid === targetUid ? null : current);
+    }, duration);
   };
 
   // Add chemical directly into vessel
@@ -344,6 +353,7 @@ export default function ExperimentLab({ initialSetup }) {
     }
 
     const reading = `${value} ${unit}`;
+    showHandAction('measure', meter.uid, 1000);
     setWorkspaceItems((items) =>
       items.map((item) => item.uid === meter.uid ? { ...item, measurement: reading, isActive: true } : item)
     );
@@ -362,6 +372,7 @@ export default function ExperimentLab({ initialSetup }) {
     setWorkspaceItems((items) =>
       items.map((i) => (i.uid === sourceId ? { ...i, isPouring: true } : i))
     );
+    showHandAction(source.state === 'solid' ? 'scoop' : 'pour', sourceId, 700);
 
     setTimeout(() => {
       setWorkspaceItems((items) => {
@@ -425,6 +436,7 @@ export default function ExperimentLab({ initialSetup }) {
 
   // Stir vessel contents
   const handleStirAction = (vesselId) => {
+    showHandAction('stir', vesselId, 1300);
     setWorkspaceItems((items) =>
       items.map((i) => (i.uid === vesselId ? { ...i, isStirring: true } : i))
     );
@@ -452,6 +464,7 @@ export default function ExperimentLab({ initialSetup }) {
     setWorkspaceItems((items) => {
       const burner = items.find((i) => i.uid === burnerId);
       const nextActive = !burner.isActive;
+      showHandAction('heat', burnerId, 900);
       addLog(nextActive ? 'Bunsen burner ignited.' : 'Bunsen burner extinguished.');
 
       return items.map((item) => {
@@ -532,6 +545,7 @@ export default function ExperimentLab({ initialSetup }) {
     setWorkspaceItems((items) =>
       items.map((item) => item.uid === tool.uid ? { ...item, isActive: true, connectedTo: sample.uid } : item)
     );
+    showHandAction('hold', tool.uid, 900);
     addLog(`Forceps safely picked up ${sample.name}.`, 'success');
     return;
     }
@@ -546,7 +560,35 @@ export default function ExperimentLab({ initialSetup }) {
     setWorkspaceItems((items) =>
       items.map((item) => item.uid === tool.uid ? { ...item, isActive: true, connectedTo: source.uid, receiverUid: receiver.uid } : item)
     );
+    showHandAction('hold', tool.uid, 1000);
     addLog(`Delivery tube connected ${source.name} to ${receiver.name}.`, 'success');
+    return;
+    }
+
+    if (tool.id === 'burette' || tool.id === 'funnel') {
+    const source = getNearestItem(tool, (item) => item.type === 'chemical' && item.state === 'liquid');
+    const target = getNearestItem(tool, (item) => item.type === 'vessel');
+    if (!source || !target) {
+      addLog(`Place the ${tool.name.toLowerCase()} between a liquid reagent and a vessel.`, 'warning');
+      return;
+    }
+    transferContents(source.uid, target.uid);
+    setWorkspaceItems((items) =>
+      items.map((item) => item.uid === tool.uid ? { ...item, isActive: true, connectedTo: target.uid } : item)
+    );
+    showHandAction('hold', tool.uid, 900);
+    addLog(`${tool.name} delivered ${source.name} into ${target.name}.`, 'success');
+    return;
+    }
+
+    if (tool.id === 'wash_bottle') {
+    const target = getNearestItem(tool, (item) => item.type === 'vessel');
+    if (!target) {
+      addLog('Place the wash bottle beside glassware to rinse it.', 'warning');
+      return;
+    }
+    handleEmptyVessel(target.uid);
+    addLog(`Rinsed ${target.name} with distilled water.`, 'success');
     return;
     }
 
@@ -559,6 +601,7 @@ export default function ExperimentLab({ initialSetup }) {
     setWorkspaceItems((items) =>
       items.map((item) => item.uid === tool.uid ? { ...item, isActive: true, connectedTo: vessel.uid } : item)
     );
+    showHandAction('hold', tool.uid, 900);
     addLog(`${tool.name} secured ${vessel.name}.`, 'success');
     }
   };
@@ -890,17 +933,50 @@ export default function ExperimentLab({ initialSetup }) {
                   {item.type === 'chemical' && item.state === 'liquid' && (
                     <LiquidChemicalGraphic chemical={item} width={110} height={110} />
                   )}
+
+                  {handAction?.targetUid === item.uid && (
+                    <HumanHandGraphic
+                      pose={handAction.pose}
+                      width={76}
+                      height={76}
+                    />
+                  )}
+
+                  {item.type === 'vessel' &&
+                    item.isHeating &&
+                    (item.vesselType || '').includes('testtube') && (
+                      <HumanHandGraphic pose="heat" width={76} height={76} />
+                    )}
                 </div>
 
-                {/* Item Label & State info */}
-                <div className="item-label-strip">
-                  <span className="item-name">{item.name}</span>
+                {/* Contents and reaction state stay visible without repeating the item name. */}
+                {((item.contents && item.contents.length > 0) || item.reaction) && (
+                  <div className="item-label-strip">
                   {item.contents && item.contents.length > 0 && (
                     <span className="item-contents-count">
                       {item.contents.map((c) => c.formula).join(' + ')}
                     </span>
                   )}
-                </div>
+                  {item.reaction && (
+                    <span className="item-reaction-state">
+                      {item.reaction.gasProduced ? `${item.reaction.gasProduced} released` : item.reaction.status}
+                    </span>
+                  )}
+                  </div>
+                )}
+
+                {item.type === 'vessel' && item.reaction && (
+                  <div className="reaction-visual-badge">
+                    <span
+                      className="reaction-color-swatch"
+                      style={{ background: item.reaction.after_color || item.reaction.color || item.liquidColor }}
+                    />
+                    <span>{item.reaction.title || item.reaction.name}</span>
+                    {item.reaction.products?.slice(0, 2).map((product, index) => (
+                      <small key={index}>{product}</small>
+                    ))}
+                  </div>
+                )}
 
                 {/* Floating Action Menu for Selected Item */}
                 {isSelected && (
@@ -964,7 +1040,7 @@ export default function ExperimentLab({ initialSetup }) {
                         onClick={() => handleToolAction(item)}
                         title={item.description || 'Use this equipment'}
                       >
-                        {item.type === 'meter' ? '📐 Measure' : item.action === 'heat' ? '🔥 Ignite' : item.action === 'stir' ? '✦ Stir' : item.action === 'drop' ? '💧 Drop' : item.action === 'scoop' ? '🥄 Scoop' : item.action === 'connect_gas' ? '🔗 Connect' : '▶ Use'}
+                        {item.type === 'meter' ? '📐 Measure' : item.action === 'heat' ? '🔥 Ignite' : item.action === 'stir' ? '✦ Stir' : item.action === 'drop' ? '💧 Drop' : item.action === 'scoop' ? '🥄 Scoop' : item.action === 'connect_gas' ? '🔗 Connect' : item.action === 'titrate' ? '⚗ Titrate' : item.action === 'filter' ? '▽ Transfer' : item.action === 'rinse' ? '♧ Rinse' : '▶ Use'}
                       </button>
                     )}
                   </div>
@@ -1139,6 +1215,13 @@ export default function ExperimentLab({ initialSetup }) {
 
               {/* Catalog Body: Search Bar + Equipment Grid */}
               <div className="sidebar-content-body">
+                <div className="catalog-panel-heading">
+                  <div>
+                    <span className="catalog-panel-kicker">LAB LIBRARY</span>
+                    <strong>{CATEGORIES.find((category) => category.id === activeCategory)?.name || 'Equipment'}</strong>
+                  </div>
+                  <span className="catalog-panel-count">{visibleEquipment.length} items</span>
+                </div>
                 <div className="catalog-header-search">
                   <div className="search-input-box">
                     <span className="search-icon">🔍</span>
