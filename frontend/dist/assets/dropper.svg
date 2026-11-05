@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+<defs><linearGradient id="glass" x1="0" x2="1"><stop stop-color="#f2ffff"/><stop offset=".5" stop-color="#71cbe0"/><stop offset="1" stop-color="#c5f6ff"/></linearGradient><linearGradient id="rubber" y2="1"><stop stop-color="#fa9a62"/><stop offset="1" stop-color="#a9462f"/></linearGradient></defs>
+<path d="M49 10h22v18l-7 10v56a10 10 0 0 1-20 0V38l-8-10V10z" fill="url(#glass)" stroke="#eaffff" stroke-width="3"/><path d="M42 10h36v17H42z" fill="url(#rubber)" stroke="#ffd0af" stroke-width="3"/><path d="M47 58h25" stroke="#48a4c1" stroke-width="8"/><path d="M54 42v42" stroke="#fff" stroke-opacity=".8" stroke-width="3" stroke-linecap="round"/><path d="M55 103c0 5 10 5 10 0" fill="#68d5ed"/>
+</svg>

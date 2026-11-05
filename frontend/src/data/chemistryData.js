@@ -695,19 +695,6 @@ export const EQUIPMENT_CATALOG = {
       description: 'Volatile base and ligand. Forms brilliant deep-blue tetraamminecopper complexes.'
     },
     {
-      id: 'cuso4_aq',
-      name: 'Copper(II) sulfate sol.',
-      detail: 'CuSO₄(aq) · 0.5 M · Sky blue',
-      formula: 'CuSO₄(aq)',
-      category: 'salt_solution',
-      type: 'chemical',
-      state: 'liquid',
-      color: '#2b8fe0',
-      ph: 4.8,
-      suitableEquipment: ['dropper', 'beaker', 'testtube'],
-      description: 'Aqueous copper(II) solution. Precipitates bright blue Cu(OH)₂ with NaOH.'
-    },
-    {
       id: 'fecl3_aq',
       name: 'Iron(III) chloride sol.',
       detail: 'FeCl₃(aq) · 0.2 M · Amber yellow',

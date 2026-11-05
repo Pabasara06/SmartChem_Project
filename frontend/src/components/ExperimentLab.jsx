@@ -12,6 +12,7 @@ import {
   ToolGraphic,
   SolidChemicalGraphic,
   LiquidChemicalGraphic,
+  GasChemicalGraphic,
   HumanHandGraphic
 } from './EquipmentSVGs';
 
@@ -47,12 +48,12 @@ export default function ExperimentLab({ initialSetup }) {
   ];
 
   const equipmentGroupIds = {
-    glassware: ['round_flask', 'separatory_funnel', 'gas_jar', 'gas_cylinder', 'small_test_tube', 'large_test_tube', 'side_arm_tube', 'beaker_100', 'beaker_250', 'conical_flask', 'watch_glass', 'crucible', 'evaporating_dish', 'volumetric_flask', 'measuring_cylinder', 'reagent_bottle', 'filter_flask', 'desiccator'],
+    glassware: ['round_flask', 'separatory_funnel', 'gas_jar', 'gas_cylinder', 'small_test_tube', 'large_test_tube', 'side_arm_tube', 'beaker_100', 'beaker_250', 'conical_flask', 'watch_glass', 'evaporating_dish', 'volumetric_flask', 'measuring_cylinder', 'reagent_bottle'],
     measuring: ['balance', 'thermometer', 'ph_meter', 'burette', 'measuring_pipette', 'volumetric_pipette', 'graduated_pipette'],
-    transfer: ['dropper', 'funnel', 'separatory_funnel', 'stirring_rod', 'spatula', 'wash_bottle'],
+    transfer: ['dropper', 'funnel', 'stirring_rod', 'spatula', 'wash_bottle'],
     heating: ['burner', 'hot_plate', 'tripod', 'wire_gauze', 'crucible', 'tongs'],
     filtration: ['filter_funnel', 'filter_paper', 'filter_flask', 'vacuum_filtration'],
-    other: ['stand', 'test_tube_rack', 'mortar_pestle', 'forceps', 'delivery_tube']
+    other: ['stand', 'test_tube_rack', 'forceps', 'delivery_tube', 'mortar_pestle', 'desiccator']
   };
 
   // Reaction Drawer & Modal States
@@ -62,6 +63,8 @@ export default function ExperimentLab({ initialSetup }) {
   const [labNotes, setLabNotes] = useState([]);
   const [setupModalOpen, setSetupModalOpen] = useState(false);
   const [selectedExperimentId, setSelectedExperimentId] = useState(EXPERIMENT_LIBRARY[0].id);
+  const [procedurePanelCollapsed, setProcedurePanelCollapsed] = useState(false);
+  const [annotations, setAnnotations] = useState([]);
 
   const canvasRef = useRef(null);
 
@@ -195,8 +198,57 @@ export default function ExperimentLab({ initialSetup }) {
     }, duration);
   };
 
+  const simulateMixtureWithBackend = async (vesselId, chemicals, isHeated, fallbackReaction) => {
+    if (!chemicals || (!isHeated && chemicals.length < 2)) return fallbackReaction;
+
+    setIsSimulating(true);
+    try {
+      const response = await fetch('http://127.0.0.1:5000/api/simulate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chemicals, is_heated: Boolean(isHeated) })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Simulation request failed with status ${response.status}.`);
+      }
+
+      const data = await response.json();
+      const reaction = data.reaction || fallbackReaction;
+      if (reaction && reaction.status !== 'idle' && reaction.id) {
+        setActiveReactionResult(reaction);
+        setWorkspaceItems((items) =>
+          items.map((item) =>
+            item.uid === vesselId
+              ? {
+                  ...item,
+                  reaction,
+                  liquidColor: reaction.after_color || reaction.color || item.liquidColor
+                }
+              : item
+          )
+        );
+        addLog(`Reaction: ${reaction.equation || reaction.name}`, 'success');
+        return reaction;
+      }
+      return null;
+    } catch {
+      // Backend simulation is optional; local physics engine smoothly evaluates
+      if (fallbackReaction && fallbackReaction.status !== 'idle' && fallbackReaction.id) {
+        setActiveReactionResult(fallbackReaction);
+      }
+      return fallbackReaction;
+    } finally {
+      setIsSimulating(false);
+    }
+  };
+
   // Add chemical directly into vessel
   const addChemicalToVessel = (chemical, vesselId) => {
+    const target = workspaceItems.find((item) => item.uid === vesselId);
+    const nextContents = target ? [...target.contents, chemical] : [];
+    const localReaction = target ? evaluateMixture(nextContents, target.isHeating) : null;
+
     setWorkspaceItems((items) =>
       items.map((i) => {
         if (i.uid === vesselId) {
@@ -226,6 +278,8 @@ export default function ExperimentLab({ initialSetup }) {
         return i;
       })
     );
+
+    simulateMixtureWithBackend(vesselId, nextContents, target?.isHeating, localReaction);
   };
 
   // Place item onto the canvas
@@ -267,8 +321,9 @@ export default function ExperimentLab({ initialSetup }) {
     if (!data || !canvasRef.current) return;
     const item = JSON.parse(data);
     const bounds = canvasRef.current.getBoundingClientRect();
-    const dropX = Math.max(10, e.clientX - bounds.left - 55);
-    const dropY = Math.max(10, e.clientY - bounds.top - 55);
+    const scale = zoomLevel / 100;
+    const dropX = Math.max(10, (e.clientX - bounds.left) / scale - 55);
+    const dropY = Math.max(10, (e.clientY - bounds.top) / scale - 55);
 
     // If dropped directly onto an existing vessel on the bench, pour/add it in!
     if (item.type === 'chemical') {
@@ -292,17 +347,21 @@ export default function ExperimentLab({ initialSetup }) {
     setDraggingId(item.uid);
 
     const bounds = canvasRef.current.getBoundingClientRect();
+    const scale = zoomLevel / 100;
     setDragOffset({
-      x: e.clientX - bounds.left - item.x,
-      y: e.clientY - bounds.top - item.y
+      x: (e.clientX - bounds.left) / scale - item.x,
+      y: (e.clientY - bounds.top) / scale - item.y
     });
   };
 
   const handleCanvasMouseMove = (e) => {
     if (!draggingId || !canvasRef.current || isLocked) return;
     const bounds = canvasRef.current.getBoundingClientRect();
-    const newX = Math.max(10, Math.min(bounds.width - 120, e.clientX - bounds.left - dragOffset.x));
-    const newY = Math.max(10, Math.min(bounds.height - 120, e.clientY - bounds.top - dragOffset.y));
+    const scale = zoomLevel / 100;
+    const canvasWidth = bounds.width / scale;
+    const canvasHeight = bounds.height / scale;
+    const newX = Math.max(10, Math.min(canvasWidth - 120, (e.clientX - bounds.left) / scale - dragOffset.x));
+    const newY = Math.max(10, Math.min(canvasHeight - 120, (e.clientY - bounds.top) / scale - dragOffset.y));
 
     setWorkspaceItems((items) =>
       items.map((item) => (item.uid === draggingId ? { ...item, x: newX, y: newY } : item))
@@ -324,13 +383,21 @@ export default function ExperimentLab({ initialSetup }) {
         }
       }
 
-      // 2. Placing vessel on top of a burner
+      // 2. Placing vessel on top of a burner/heater OR dragging heater beneath a vessel
       if (dragged.type === 'vessel') {
         const burner = workspaceItems.find(
-          (b) => b.type === 'heater' && Math.hypot(b.x - dragged.x, b.y - (dragged.y + 70)) < 65
+          (b) => b.type === 'heater' && Math.hypot(b.x - dragged.x, b.y - (dragged.y + 70)) < 75
         );
         if (burner && burner.isActive) {
           heatVessel(dragged.uid);
+        }
+      }
+      if (dragged.type === 'heater') {
+        const vessel = workspaceItems.find(
+          (v) => v.type === 'vessel' && Math.hypot(dragged.x - v.x, dragged.y - (v.y + 70)) < 75
+        );
+        if (vessel && dragged.isActive) {
+          heatVessel(vessel.uid);
         }
       }
 
@@ -430,6 +497,8 @@ export default function ExperimentLab({ initialSetup }) {
           addLog(`${source.name} added into ${target.name}.`);
         }
 
+        simulateMixtureWithBackend(targetId, newContents, updatedTarget.isHeating, reactionResult);
+
         return items
           .filter((i) => (source.type === 'chemical' ? i.uid !== sourceId : true))
           .map((i) => {
@@ -526,144 +595,151 @@ export default function ExperimentLab({ initialSetup }) {
 
   const handleToolAction = (tool) => {
     if (tool.type === 'meter') {
-    handleMeterMeasurement(tool);
-    return;
+      handleMeterMeasurement(tool);
+      return;
     }
 
     if (tool.id === 'burner' || tool.id === 'hot_plate') {
-    handleToggleBurner(tool.uid);
-    return;
+      handleToggleBurner(tool.uid);
+      return;
     }
 
     if (tool.id === 'stirring_rod') {
-    const vessel = getNearestItem(tool, (item) => item.type === 'vessel' && item.contents.length > 0);
-    if (!vessel) {
-      addLog('Place the stirring rod beside a vessel containing chemicals.', 'warning');
+      const vessel = getNearestItem(tool, (item) => item.type === 'vessel' && item.contents.length > 0);
+      if (!vessel) {
+        addLog('Place the stirring rod beside a vessel containing chemicals.', 'warning');
+        return;
+      }
+      handleStirAction(vessel.uid);
       return;
-    }
-    handleStirAction(vessel.uid);
-    return;
     }
 
     if (tool.id === 'dropper' || tool.action === 'pipette') {
-    const source = getNearestItem(tool, (item) => item.type === 'chemical' && item.state === 'liquid');
-    const target = getNearestItem(tool, (item) => item.type === 'vessel');
-    if (!source || !target) {
-      addLog('Place the dropper near a liquid reagent and a vessel.', 'warning');
+      const source = getNearestItem(tool, (item) => item.type === 'chemical' && item.state === 'liquid');
+      const target = getNearestItem(tool, (item) => item.type === 'vessel');
+      if (!source || !target) {
+        addLog('Place the dropper near a liquid reagent and a vessel.', 'warning');
+        return;
+      }
+      transferContents(source.uid, target.uid);
+      addLog(`Dropper delivered a controlled addition of ${source.name}.`, 'success');
       return;
-    }
-    transferContents(source.uid, target.uid);
-    addLog(`Dropper delivered a controlled addition of ${source.name}.`, 'success');
-    return;
     }
 
-    if (tool.id === 'spatula') {
-    const source = getNearestItem(tool, (item) => item.type === 'chemical' && item.state === 'solid');
-    const target = getNearestItem(tool, (item) => item.type === 'vessel');
-    if (!source || !target) {
-      addLog('Place the spatula near a solid reagent and a vessel.', 'warning');
+    if (tool.id === 'spatula' || tool.action === 'scoop') {
+      const source = getNearestItem(tool, (item) => item.type === 'chemical' && item.state === 'solid');
+      const target = getNearestItem(tool, (item) => item.type === 'vessel');
+      if (!source || !target) {
+        addLog('Place the spatula near a solid reagent and a vessel.', 'warning');
+        return;
+      }
+      transferContents(source.uid, target.uid);
+      addLog(`Spatula transferred a small portion of ${source.name}.`, 'success');
       return;
-    }
-    transferContents(source.uid, target.uid);
-    addLog(`Spatula transferred a small portion of ${source.name}.`, 'success');
-    return;
     }
 
     if (tool.id === 'forceps') {
-    const sample = getNearestItem(tool, (item) => item.type === 'chemical' && item.state === 'solid');
-    if (!sample) {
-      addLog('Place the forceps beside a solid sample to handle it.', 'warning');
-      return;
-    }
-    setWorkspaceItems((items) =>
-      items.map((item) => item.uid === tool.uid ? { ...item, isActive: true, connectedTo: sample.uid } : item)
-    );
-    showHandAction('hold', tool.uid, 900);
-    addLog(`Forceps safely picked up ${sample.name}.`, 'success');
-    return;
-    }
-
-    if (tool.id === 'delivery_tube') {
-    const source = getNearestItem(tool, (item) => item.type === 'vessel' && item.contents.length > 0);
-    const receiver = getNearestItem(tool, (item) => item.id === 'gas_jar' || item.id === 'gas_collection');
-    if (!source || !receiver) {
-      addLog('Place the delivery tube between a reacting vessel and a gas jar.', 'warning');
-      return;
-    }
-    setWorkspaceItems((items) =>
-      items.map((item) => item.uid === tool.uid ? { ...item, isActive: true, connectedTo: source.uid, receiverUid: receiver.uid } : item)
-    );
-    showHandAction('hold', tool.uid, 1000);
-    addLog(`Delivery tube connected ${source.name} to ${receiver.name}.`, 'success');
-    return;
-    }
-
-    if (tool.id === 'burette' || tool.id === 'funnel' || tool.id === 'filter_funnel' || tool.action === 'filter') {
-    const source = getNearestItem(tool, (item) => item.type === 'chemical' && item.state === 'liquid');
-    const target = getNearestItem(tool, (item) => item.type === 'vessel');
-    if (!source || !target) {
-      addLog(`Place the ${tool.name.toLowerCase()} between a liquid reagent and a vessel.`, 'warning');
-      return;
-    }
-
-    if (tool.action === 'handle_hot') {
-      const target = getNearestItem(tool, (item) => item.type === 'vessel' || item.id === 'crucible');
-      if (!target) {
-        addLog('Place the tongs beside a vessel or crucible to handle it.', 'warning');
+      const sample = getNearestItem(tool, (item) => item.type === 'chemical' && item.state === 'solid');
+      if (!sample) {
+        addLog('Place the forceps beside a solid sample to handle it.', 'warning');
         return;
       }
       setWorkspaceItems((items) =>
-        items.map((item) => item.uid === tool.uid ? { ...item, isActive: true, connectedTo: target.uid } : item)
+        items.map((item) => (item.uid === tool.uid ? { ...item, isActive: true, connectedTo: sample.uid } : item))
+      );
+      showHandAction('hold', tool.uid, 900);
+      addLog(`Forceps safely picked up ${sample.name}.`, 'success');
+      return;
+    }
+
+    if (tool.id === 'tongs' || tool.action === 'handle_hot') {
+      const target = getNearestItem(tool, (item) => item.type === 'vessel' || item.id === 'crucible');
+      if (!target) {
+        addLog('Place the crucible tongs beside a vessel or crucible to handle it.', 'warning');
+        return;
+      }
+      setWorkspaceItems((items) =>
+        items.map((item) => (item.uid === tool.uid ? { ...item, isActive: true, connectedTo: target.uid } : item))
       );
       showHandAction('hold', tool.uid, 900);
       addLog(`${tool.name} picked up ${target.name}.`, 'success');
       return;
     }
 
-    if (tool.action === 'grind') {
+    if (tool.id === 'mortar_pestle' || tool.action === 'grind') {
       const sample = getNearestItem(tool, (item) => item.type === 'chemical' && item.state === 'solid');
       if (!sample) {
-        addLog('Place a solid chemical near the mortar and pestle.', 'warning');
+        addLog('Place a solid chemical near the mortar and pestle to grind.', 'warning');
         return;
       }
       setWorkspaceItems((items) =>
-        items.map((item) => item.uid === tool.uid ? { ...item, isActive: true, connectedTo: sample.uid } : item)
+        items.map((item) => (item.uid === tool.uid ? { ...item, isActive: true, connectedTo: sample.uid } : item))
       );
-      showHandAction('hold', tool.uid, 1100);
-      addLog(`${tool.name} ground ${sample.name} into a finer sample.`, 'success');
+      showHandAction('stir', tool.uid, 1200);
+      addLog(`${tool.name} ground ${sample.name} into fine powder.`, 'success');
       return;
     }
-    transferContents(source.uid, target.uid);
-    setWorkspaceItems((items) =>
-      items.map((item) => item.uid === tool.uid ? { ...item, isActive: true, connectedTo: target.uid } : item)
-    );
-    showHandAction('hold', tool.uid, 900);
-    addLog(`${tool.name} delivered ${source.name} into ${target.name}.`, 'success');
-    return;
+
+    if (tool.id === 'delivery_tube') {
+      const source = getNearestItem(tool, (item) => item.type === 'vessel' && item.contents.length > 0);
+      const receiver = getNearestItem(tool, (item) => item.id === 'gas_jar' || item.id === 'gas_collection');
+      if (!source || !receiver) {
+        addLog('Place the delivery tube between a reacting vessel and a gas jar.', 'warning');
+        return;
+      }
+      setWorkspaceItems((items) =>
+        items.map((item) => (item.uid === tool.uid ? { ...item, isActive: true, connectedTo: source.uid, receiverUid: receiver.uid } : item))
+      );
+      showHandAction('hold', tool.uid, 1000);
+      addLog(`Delivery tube connected ${source.name} to ${receiver.name}.`, 'success');
+      return;
+    }
+
+    if (
+      tool.id === 'burette' ||
+      tool.id === 'funnel' ||
+      tool.id === 'filter_funnel' ||
+      tool.action === 'filter' ||
+      tool.action === 'titrate'
+    ) {
+      const source = getNearestItem(tool, (item) => item.type === 'chemical' && item.state === 'liquid');
+      const target = getNearestItem(tool, (item) => item.type === 'vessel');
+      if (!source || !target) {
+        addLog(`Place the ${tool.name.toLowerCase()} between a liquid reagent and a vessel.`, 'warning');
+        return;
+      }
+      transferContents(source.uid, target.uid);
+      setWorkspaceItems((items) =>
+        items.map((item) => (item.uid === tool.uid ? { ...item, isActive: true, connectedTo: target.uid } : item))
+      );
+      showHandAction('hold', tool.uid, 900);
+      addLog(`${tool.name} delivered ${source.name} into ${target.name}.`, 'success');
+      return;
     }
 
     if (tool.id === 'wash_bottle') {
-    const target = getNearestItem(tool, (item) => item.type === 'vessel');
-    if (!target) {
-      addLog('Place the wash bottle beside glassware to rinse it.', 'warning');
+      const target = getNearestItem(tool, (item) => item.type === 'vessel');
+      if (!target) {
+        addLog('Place the wash bottle beside glassware to rinse it.', 'warning');
+        return;
+      }
+      handleEmptyVessel(target.uid);
+      addLog(`Rinsed ${target.name} with distilled water.`, 'success');
       return;
-    }
-    handleEmptyVessel(target.uid);
-    addLog(`Rinsed ${target.name} with distilled water.`, 'success');
-    return;
     }
 
     if (tool.type === 'support') {
-    const vessel = getNearestItem(tool, (item) => item.type === 'vessel');
-    if (!vessel) {
-      addLog(`Place ${tool.name} beside compatible glassware first.`, 'warning');
+      const vessel = getNearestItem(tool, (item) => item.type === 'vessel');
+      if (!vessel) {
+        addLog(`Place ${tool.name} beside compatible glassware first.`, 'warning');
+        return;
+      }
+      setWorkspaceItems((items) =>
+        items.map((item) => (item.uid === tool.uid ? { ...item, isActive: true, connectedTo: vessel.uid } : item))
+      );
+      showHandAction('hold', tool.uid, 900);
+      addLog(`${tool.name} secured ${vessel.name}.`, 'success');
       return;
-    }
-    setWorkspaceItems((items) =>
-      items.map((item) => item.uid === tool.uid ? { ...item, isActive: true, connectedTo: vessel.uid } : item)
-    );
-    showHandAction('hold', tool.uid, 900);
-    addLog(`${tool.name} secured ${vessel.name}.`, 'success');
     }
   };
 
@@ -675,7 +751,16 @@ export default function ExperimentLab({ initialSetup }) {
   );
   const experimentEquipmentIds = workspaceItems.map((item) => item.id);
   const hasRequiredChemicals = selectedExperiment.chemicals.every((chemicalId) => experimentChemicalIds.includes(chemicalId));
-  const hasRequiredEquipment = selectedExperiment.equipment.some((equipmentId) => experimentEquipmentIds.includes(equipmentId));
+  const equipmentAliases = { test_tube: ['small_test_tube', 'large_test_tube'] };
+  const hasRequiredEquipment = selectedExperiment.equipment.every((equipmentId) =>
+    equipmentAliases[equipmentId]
+      ? equipmentAliases[equipmentId].some((alias) => experimentEquipmentIds.includes(alias))
+      : experimentEquipmentIds.includes(equipmentId)
+  );
+  const reactiveVesselReady = workspaceItems.some(
+    (item) => item.type === 'vessel' && item.contents && item.contents.length >= 2
+  );
+  const experimentRunReady = hasRequiredEquipment && hasRequiredChemicals && reactiveVesselReady;
   const hasObservedResult = workspaceItems.some((item) => item.type === 'vessel' && (item.reaction || item.isHeating));
   const experimentSteps = selectedExperiment.steps.map((step, index) => ({
     text: step,
@@ -745,6 +830,14 @@ export default function ExperimentLab({ initialSetup }) {
 
   // Global Demo / Simulation trigger (Top right "Demo" button)
   const handleRunDemoSimulation = async () => {
+    if (!experimentRunReady) {
+      setSidebarOpen(true);
+      setActiveCategory('vessel');
+      setLibraryTab('equipment');
+      addLog('Equipment library opened. Place the required items, then add chemicals to a vessel.', 'info');
+      return;
+    }
+
     setIsSimulating(true);
     addLog('Evaluating all laboratory interactions...');
 
@@ -759,15 +852,15 @@ export default function ExperimentLab({ initialSetup }) {
     }
 
     try {
-      const response = await fetch('http://localhost:5000/api/simulate', {
+      const response = await fetch('http://127.0.0.1:5000/api/simulate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chemicals: reactiveVessel.contents })
+        body: JSON.stringify({ chemicals: reactiveVessel.contents, is_heated: Boolean(reactiveVessel.isHeating) })
       });
 
       if (response.ok) {
         const data = await response.json();
-        if (data.reaction) {
+        if (data.reaction && data.reaction.status !== 'idle' && data.reaction.id) {
           setActiveReactionResult(data.reaction);
           setWorkspaceItems((items) =>
             items.map((i) =>
@@ -809,6 +902,22 @@ export default function ExperimentLab({ initialSetup }) {
     }
 
     setIsSimulating(false);
+  };
+
+  const handleCanvasClick = (e) => {
+    if (activeTool === 'pen' && canvasRef.current) {
+      const bounds = canvasRef.current.getBoundingClientRect();
+      const scale = zoomLevel / 100;
+      const x = Math.max(10, Math.round((e.clientX - bounds.left) / scale));
+      const y = Math.max(10, Math.round((e.clientY - bounds.top) / scale));
+      const text = window.prompt('Enter observation or lab note:', 'Observed change');
+      if (text) {
+        setAnnotations((prev) => [...prev, { id: uid(), x, y, text }]);
+        addLog(`Note pinned: "${text}"`, 'info');
+      }
+      return;
+    }
+    setSelectedId(null);
   };
 
   const handleSaveExperiment = () => {
@@ -885,12 +994,17 @@ export default function ExperimentLab({ initialSetup }) {
         {/* Right: Demo Button with Monitor Icon */}
         <div className="top-action-group">
           <button
-            className="demo-screen-btn"
+            className={`demo-screen-btn ${!experimentRunReady ? 'is-disabled' : ''}`}
             onClick={handleRunDemoSimulation}
             disabled={isSimulating}
+            title={
+              experimentRunReady
+                ? 'Run the prepared experiment'
+                : 'Place the required equipment and chemicals into a vessel first'
+            }
           >
             <span className="demo-icon">🖥️</span>
-            <span className="demo-text">{isSimulating ? 'Evaluating…' : 'Demo'}</span>
+            <span className="demo-text">{isSimulating ? 'Evaluating…' : experimentRunReady ? 'Run' : 'Place items'}</span>
           </button>
         </div>
       </header>
@@ -905,7 +1019,7 @@ export default function ExperimentLab({ initialSetup }) {
           onDrop={handleCanvasDrop}
           onMouseMove={handleCanvasMouseMove}
           onMouseUp={handleCanvasMouseUp}
-          onClick={() => setSelectedId(null)}
+          onClick={handleCanvasClick}
           style={{ transform: `scale(${zoomLevel / 100})`, transformOrigin: 'top left' }}
         >
           <div className="procedure-guide">
@@ -917,49 +1031,6 @@ export default function ExperimentLab({ initialSetup }) {
               {selectedItem?.isActive || selectedItem?.measurement ? 'Action ready / completed' : 'Select and place equipment to begin'}
             </div>
           </div>
-
-          <aside className="experiment-procedure-panel">
-            <div className="procedure-panel-header">
-              <div>
-                <span className="catalog-panel-kicker">EXPERIMENT RUNNER</span>
-                <strong>Guided procedure</strong>
-              </div>
-              <span className="procedure-progress">{experimentProgress}/{experimentSteps.length}</span>
-            </div>
-            <select
-              className="experiment-select"
-              value={selectedExperimentId}
-              onChange={(event) => {
-                setSelectedExperimentId(event.target.value);
-                const nextExperiment = EXPERIMENT_LIBRARY.find((experiment) => experiment.id === event.target.value);
-                if (nextExperiment) setExperimentName(nextExperiment.name);
-              }}
-            >
-              {EXPERIMENT_LIBRARY.map((experiment) => (
-                <option key={experiment.id} value={experiment.id}>{experiment.name}</option>
-              ))}
-            </select>
-            <p className="experiment-objective">{selectedExperiment.objective}</p>
-            <div className="experiment-requirements">
-              <span className={hasRequiredChemicals ? 'requirement-ready' : ''}>Chemicals {hasRequiredChemicals ? 'ready' : 'needed'}</span>
-              <span className={hasRequiredEquipment ? 'requirement-ready' : ''}>Equipment {hasRequiredEquipment ? 'ready' : 'needed'}</span>
-            </div>
-            <ol className="experiment-step-list">
-              {experimentSteps.map((step, index) => (
-                <li key={`${selectedExperiment.id}-${index}`} className={step.done ? 'complete' : ''}>
-                  <span>{step.done ? '✓' : index + 1}</span>
-                  {step.text}
-                </li>
-              ))}
-            </ol>
-            <details className="experiment-details">
-              <summary>Show theory, safety & result</summary>
-              <p><b>Theory:</b> {selectedExperiment.theory}</p>
-              <p><b>Safety:</b> {selectedExperiment.safety}</p>
-              <p><b>Expected:</b> {selectedExperiment.expected}</p>
-              <code>{selectedExperiment.equation}</code>
-            </details>
-          </aside>
 
           {/* Empty workspace prompt */}
           {workspaceItems.length === 0 && (
@@ -1050,6 +1121,10 @@ export default function ExperimentLab({ initialSetup }) {
 
                   {item.type === 'chemical' && item.state === 'liquid' && (
                     <LiquidChemicalGraphic chemical={item} width={110} height={110} />
+                  )}
+
+                  {item.type === 'chemical' && item.state === 'gas' && (
+                    <GasChemicalGraphic chemical={item} width={110} height={110} />
                   )}
 
                   {handAction?.targetUid === item.uid && (
@@ -1204,7 +1279,92 @@ export default function ExperimentLab({ initialSetup }) {
               </div>
             </div>
           )}
+
+          {/* Bench Annotations (Pen Tool) */}
+          {annotations.map((ann) => (
+            <div
+              key={ann.id}
+              className="canvas-bench-annotation"
+              style={{ left: `${ann.x}px`, top: `${ann.y}px` }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="annotation-pin">📌</div>
+              <div className="annotation-card">
+                <span>{ann.text}</span>
+                <button
+                  className="annotation-del"
+                  onClick={() => setAnnotations((prev) => prev.filter((a) => a.id !== ann.id))}
+                  title="Remove note"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          ))}
         </main>
+
+        <aside
+          className={`experiment-procedure-panel ${procedurePanelCollapsed ? 'collapsed' : ''}`}
+          style={{ right: sidebarOpen ? '414px' : '24px' }}
+        >
+          <div className="procedure-panel-header">
+            <div>
+              <span className="catalog-panel-kicker">EXPERIMENT RUNNER</span>
+              <strong>Guided procedure</strong>
+            </div>
+            <div className="procedure-header-actions">
+              <span className="procedure-progress">{experimentProgress}/{experimentSteps.length}</span>
+              <button
+                className="procedure-toggle-btn"
+                onClick={() => setProcedurePanelCollapsed(!procedurePanelCollapsed)}
+                title={procedurePanelCollapsed ? 'Expand procedure guide' : 'Minimize procedure guide'}
+              >
+                {procedurePanelCollapsed ? '▲ Expand' : '▼ Minimize'}
+              </button>
+            </div>
+          </div>
+          {!procedurePanelCollapsed && (
+            <>
+              <select
+                className="experiment-select"
+                value={selectedExperimentId}
+                onChange={(event) => {
+                  setSelectedExperimentId(event.target.value);
+                  const nextExperiment = EXPERIMENT_LIBRARY.find((experiment) => experiment.id === event.target.value);
+                  if (nextExperiment) setExperimentName(nextExperiment.name);
+                }}
+              >
+                {EXPERIMENT_LIBRARY.map((experiment) => (
+                  <option key={experiment.id} value={experiment.id}>{experiment.name}</option>
+                ))}
+              </select>
+              <p className="experiment-objective">{selectedExperiment.objective}</p>
+              <div className="experiment-requirements">
+                <span className={hasRequiredChemicals ? 'requirement-ready' : ''}>
+                  Chemicals {hasRequiredChemicals ? 'ready' : 'needed'}
+                </span>
+                <span className={hasRequiredEquipment ? 'requirement-ready' : ''}>
+                  Equipment {hasRequiredEquipment ? 'ready' : 'needed'}
+                </span>
+              </div>
+              <ol className="experiment-step-list">
+                {experimentSteps.map((step, index) => (
+                  <li key={`${selectedExperiment.id}-${index}`} className={step.done ? 'complete' : ''}>
+                    <span>{step.done ? '✓' : index + 1}</span>
+                    {step.text}
+                  </li>
+                ))}
+              </ol>
+              <details className="experiment-details">
+                <summary>Show theory, safety & result</summary>
+                <p><b>Theory:</b> {selectedExperiment.theory}</p>
+                <p><b>Safety:</b> {selectedExperiment.safety}</p>
+                <p><b>Expected:</b> {selectedExperiment.expected}</p>
+                <code>{selectedExperiment.equation}</code>
+              </details>
+            </>
+          )}
+        </aside>
 
         {/* ── BOTTOM-LEFT FLOATING CANVAS TOOLBAR (Exact Match to Screenshot) ── */}
         <div className="bottom-left-toolbar">
@@ -1295,7 +1455,10 @@ export default function ExperimentLab({ initialSetup }) {
                   <button
                     key={cat.id}
                     className={`rail-tab-btn ${activeCategory === cat.id ? 'active' : ''}`}
-                    onClick={() => setActiveCategory(cat.id)}
+                    onClick={() => {
+                      setActiveCategory(cat.id);
+                      setLibraryTab(cat.id === 'solid' || cat.id === 'liquid' || cat.id === 'gas' ? 'chemicals' : cat.id === 'tools' ? 'tools' : 'equipment');
+                    }}
                     title={cat.description}
                   >
                     <span className="rail-icon">
@@ -1336,16 +1499,37 @@ export default function ExperimentLab({ initialSetup }) {
                 <div className="catalog-panel-heading">
                   <div>
                     <span className="catalog-panel-kicker">LAB LIBRARY</span>
-                    <strong>{CATEGORIES.find((category) => category.id === activeCategory)?.name || 'Equipment'}</strong>
+                    <strong>
+                      {libraryTab === 'equipment'
+                        ? equipmentGroups.find((group) => group.id === equipmentGroup)?.label
+                        : libraryTab === 'chemicals'
+                        ? 'Chemicals'
+                        : 'Tools'}
+                    </strong>
                   </div>
                   <span className="catalog-panel-count">{visibleEquipment.length} items</span>
                 </div>
+                {libraryTab === 'equipment' && (
+                  <div className="equipment-group-grid">
+                    {equipmentGroups.map((group) => (
+                      <button
+                        key={group.id}
+                        className={equipmentGroup === group.id ? 'active' : ''}
+                        onClick={() => setEquipmentGroup(group.id)}
+                        title={`Show ${group.label}`}
+                      >
+                        <span>{group.icon}</span>
+                        {group.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <div className="catalog-header-search">
                   <div className="search-input-box">
                     <span className="search-icon">🔍</span>
                     <input
                       type="text"
-                      placeholder="SearchEquipment"
+                      placeholder="Search equipment"
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                     />
