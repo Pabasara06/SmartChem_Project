@@ -65,8 +65,44 @@ export default function ExperimentLab({ initialSetup }) {
   const [selectedExperimentId, setSelectedExperimentId] = useState(EXPERIMENT_LIBRARY[0].id);
   const [procedurePanelCollapsed, setProcedurePanelCollapsed] = useState(false);
   const [annotations, setAnnotations] = useState([]);
+  const [runnerPosition, setRunnerPosition] = useState(null);
+  const [runnerDrag, setRunnerDrag] = useState(null);
 
   const canvasRef = useRef(null);
+  const runnerPanelRef = useRef(null);
+
+  const handleRunnerDragStart = (event) => {
+    if (event.button !== 0 || !runnerPanelRef.current) return;
+    const bounds = runnerPanelRef.current.getBoundingClientRect();
+    setRunnerPosition({ left: bounds.left, top: bounds.top });
+    setRunnerDrag({
+      offsetX: event.clientX - bounds.left,
+      offsetY: event.clientY - bounds.top
+    });
+    event.preventDefault();
+  };
+
+  useEffect(() => {
+    if (!runnerDrag) return undefined;
+
+    const handleRunnerDragMove = (event) => {
+      const panel = runnerPanelRef.current;
+      if (!panel) return;
+      const width = panel.offsetWidth;
+      const height = panel.offsetHeight;
+      const left = Math.max(0, Math.min(window.innerWidth - width, event.clientX - runnerDrag.offsetX));
+      const top = Math.max(0, Math.min(window.innerHeight - height, event.clientY - runnerDrag.offsetY));
+      setRunnerPosition({ left, top });
+    };
+
+    const handleRunnerDragEnd = () => setRunnerDrag(null);
+    window.addEventListener('mousemove', handleRunnerDragMove);
+    window.addEventListener('mouseup', handleRunnerDragEnd);
+    return () => {
+      window.removeEventListener('mousemove', handleRunnerDragMove);
+      window.removeEventListener('mouseup', handleRunnerDragEnd);
+    };
+  }, [runnerDrag]);
 
   // Initialize with default or passed setup
   useEffect(() => {
@@ -1304,10 +1340,19 @@ export default function ExperimentLab({ initialSetup }) {
         </main>
 
         <aside
+          ref={runnerPanelRef}
           className={`experiment-procedure-panel ${procedurePanelCollapsed ? 'collapsed' : ''}`}
-          style={{ right: sidebarOpen ? '414px' : '24px' }}
+          style={{
+            right: runnerPosition ? 'auto' : sidebarOpen ? '414px' : '24px',
+            bottom: runnerPosition ? 'auto' : undefined,
+            ...(runnerPosition || {})
+          }}
         >
-          <div className="procedure-panel-header">
+          <div
+            className="procedure-panel-header runner-drag-handle"
+            onMouseDown={handleRunnerDragStart}
+            title="Drag to move the experiment runner"
+          >
             <div>
               <span className="catalog-panel-kicker">EXPERIMENT RUNNER</span>
               <strong>Guided procedure</strong>
