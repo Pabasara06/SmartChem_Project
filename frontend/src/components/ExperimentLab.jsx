@@ -109,9 +109,25 @@ export default function ExperimentLab({ initialSetup }) {
     if (initialSetup) {
       if (initialSetup.name) setExperimentName(initialSetup.name);
       loadExperimentPreset(initialSetup);
-    } else if (workspaceItems.length === 0) {
+    } else {
+      const savedBench = localStorage.getItem('smartchem_saved_bench');
+      if (savedBench) {
+        try {
+          const savedData = JSON.parse(savedBench);
+          if (Array.isArray(savedData.workspaceItems)) {
+            setExperimentName(savedData.experimentName || 'Unnamed');
+            setWorkspaceItems(savedData.workspaceItems);
+            addLog('Saved experiment restored.', 'success');
+            return;
+          }
+        } catch {
+          localStorage.removeItem('smartchem_saved_bench');
+        }
+      }
+
       // Default clean bench setup: Beaker 100mL + Dropper ready to go
-      const beakerDef = EQUIPMENT_CATALOG.vessel.find((v) => v.id === 'beaker_100') || EQUIPMENT_CATALOG.vessel[7];
+      const beakerDef =
+        EQUIPMENT_CATALOG.vessel.find((v) => v.id === 'beaker_100') || EQUIPMENT_CATALOG.vessel[7];
       if (beakerDef) {
         setWorkspaceItems([
           {
@@ -966,6 +982,28 @@ export default function ExperimentLab({ initialSetup }) {
     addLog('Experiment saved locally.', 'success');
   };
 
+  const handleLoadSavedExperiment = () => {
+    const savedBench = localStorage.getItem('smartchem_saved_bench');
+    if (!savedBench) {
+      addLog('No saved experiment found in this browser.', 'warning');
+      return;
+    }
+
+    try {
+      const savedData = JSON.parse(savedBench);
+      if (!Array.isArray(savedData.workspaceItems)) {
+        throw new Error('Saved experiment has no workspace items.');
+      }
+      setExperimentName(savedData.experimentName || 'Unnamed');
+      setWorkspaceItems(savedData.workspaceItems);
+      setSelectedId(null);
+      setActiveReactionResult(null);
+      addLog('Saved experiment loaded.', 'success');
+    } catch {
+      addLog('Saved experiment could not be loaded.', 'warning');
+    }
+  };
+
   const handleResetBench = () => {
     setWorkspaceItems([]);
     setSelectedId(null);
@@ -990,6 +1028,11 @@ export default function ExperimentLab({ initialSetup }) {
           <button className="top-tool-btn" onClick={handleSaveExperiment}>
             <span className="btn-icon">💾</span>
             <span className="btn-label">Save</span>
+          </button>
+
+          <button className="top-tool-btn" onClick={handleLoadSavedExperiment}>
+            <span className="btn-icon">📂</span>
+            <span className="btn-label">Load</span>
           </button>
 
           <button className="top-tool-btn" onClick={handleResetBench}>
