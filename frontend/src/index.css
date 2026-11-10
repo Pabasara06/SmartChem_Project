@@ -2427,6 +2427,38 @@ body {
   text-transform: uppercase;
 }
 
+/* Keep catalog previews and labels contained at every sidebar width. */
+.equipment-shelf-card {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.shelf-card-preview {
+  flex: 0 0 94px;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.shelf-card-preview > div,
+.shelf-card-preview svg {
+  max-width: 100%;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.shelf-card-name,
+.shelf-card-detail,
+.shelf-card-action {
+  width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.shelf-card-name {
+  min-height: 2.5em;
+}
+
 .item-label-strip {
   box-shadow: 0 5px 12px rgba(0, 0, 0, 0.18);
 }
